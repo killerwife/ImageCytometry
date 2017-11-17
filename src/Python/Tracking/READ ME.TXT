@@ -1,0 +1,7 @@
+SimpleTracking.py slúži na trasovanie objektov. Ako vstupy slúžia súbory v adresári input_tracking.
+
+AnalyzeTracks.py slúži na analýzu vytvorených trás. Ako vstupy slúžia súbory v adresári input_velocity prípadne output_tracking.
+
+Vstupy nie sú ošetrené, pre správnu fuknčnosť je potrebné ich zadať správne.
+
+Pre úkážku funkčnosti prosím kontaktujte autora- Júlia Tomášiková (julia.tomasikova@gmail.com)
