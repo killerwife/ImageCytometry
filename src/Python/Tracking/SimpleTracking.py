@@ -29,7 +29,7 @@ def parse_xml(file):
             par_y = int(particles[p].attributes['y'].value)
             # frame.append([par_number,par_x, par_y])
 
-            frame.append([par_x, par_y, 0, number])
+            frame.append([par_x, par_y, 0, number, 0, 0])
             # if (fill_matrix):
             #     matrix[par_x][par_y].append(int(number))
             #     total_count += 1
@@ -39,6 +39,85 @@ def parse_xml(file):
     print('\tparticles: ' + str(total_count) )
     print('\tdone')
     return mat
+
+
+# ------------------------------------------------------------------------------------------
+def parse_xml_anastroj(file):
+    print('Parsing: ' + file)
+    import xml.etree.ElementTree as ET
+    tree = ET.parse(file)
+    root = tree.getroot()
+    mat = []
+    number = 0
+    from math import floor
+
+    for child in root:
+        for child2 in child:
+            for child3 in child2:
+                if (child3.tag == 'boundingboxes') :
+                    boundingboxes = child3
+                    number += 1
+                    frame = []
+                    for boundingbox in boundingboxes.iter('boundingbox'):
+                        x_left = int(boundingbox.find('x_left_top').text)
+                        y_left = int(boundingbox.find('y_left_top').text)
+                        width = int(boundingbox.find('width').text)
+                        height = int(boundingbox.find('height').text)
+                        x = int((x_left + floor(width / 2)))
+                        y = int((y_left + floor(height/2)))
+
+                        print(x, y)
+                        frame.append([x, y, 0, number, width, height])
+                    mat.append(frame)
+
+    print('--- ********** ---')
+    #print('\tmatica: ' + str(mat) )
+    print('\tdone')
+    return mat
+
+# ------------------------------------------------------------------------------------------
+def save_as_anastroj_file(tracks, file_name):
+    print (tracks)
+    import xml.etree.ElementTree as element
+    from math import floor
+    root =element.Element("data")
+    images = element.SubElement(root, "images")
+    print(len(mat))
+    for x in range(len(mat)):
+        image = element.SubElement(images,"image")
+        boundingboxes = element.SubElement(image,"boundingboxes")
+
+        for y in range(len(mat[x])):
+            boundingbox = element.SubElement(boundingboxes,"boundingbox")
+            x_left_top = element.SubElement(boundingbox, "x_left_top")
+            x_left_top.text = str(mat[x][y][0]- floor(mat[x][y][4]/2))
+
+            y_left_top = element.SubElement(boundingbox, "y_left_top")
+            y_left_top.text = str(mat[x][y][1] - floor(mat[x][y][5]/2))
+
+            width = element.SubElement(boundingbox, "width")
+            width.text = str(mat[x][y][4])
+
+            height = element.SubElement(boundingbox, "height")
+            height.text = str(mat[x][y][5])
+            class_name = element.SubElement(boundingbox, "class", {"name": 'bunka'})
+            attribute = element.SubElement(class_name, "attribute", {"name":'track_id'})
+
+            for n in range(len(tracks)):
+                if (mat[x][y] in tracks[n]):
+                    attribute.text = str(n)
+
+            """""""""
+            for i_track in range(len(tracks)):
+                for i_i_track in range(len(tracks[i_track])):
+                    if((tracks[i_track][i_i_track]) == (cell)):
+                        print("cell: ", str(cell), " track: ", str(i_track), " frame: ", str(i_i_track))
+                        attribute.text = str(i_track)
+            """""""""
+
+    tree = element.ElementTree(root)
+    tree.write('output_tracking\/' + file_name + '.xml')
+    print('Done')
 # ------------------------------------------------------------------------------------------
 
 # metoda generuje xml popisujuce vytvorene tracky. Hodnoty (suradnice, casovy udaj) su prepocitane na microm a microsec- podla simulacie
@@ -966,7 +1045,10 @@ tracks = []
 unresolved_from_tracking = []
 mat =[]
 
-mat = parse_xml('input_tracking\/'+file_name)
+if (resolution[0] == 'anastroj'):
+    mat = parse_xml_anastroj('input_tracking\/'+file_name)
+else:
+    mat = parse_xml('input_tracking\/'+file_name)
 
 print('-----------------------------------------------------------------------------------------------')
 parameters = input('Parameters (dist a b) for simple tracking: [12,8,8]')
@@ -1025,6 +1107,12 @@ print('-------------------------------------------------------------------------
 file_xml = input('File name for export: ')
 generate_tracks_xml_real(merged_tracks,file_xml,frame_rate, pixel_size)
 print('-----------------------------------------------------------------------------------------------')
+
+save = input('Would you like to save as anastroj file?')
+if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
+    file_name = input('File name for anastroj export: ')
+    save_as_anastroj_file(tracks, file_name)
+
 show = input('Would you like to show and save img of final tracks?')
 if (show == 'y' or show == 'yes' or show == 'Y' or show == 'YES'):
     name = input('File name:')
