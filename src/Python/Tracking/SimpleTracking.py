@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import math
 import random
+import Tracking
 
 
 def parse_xml(file):
@@ -444,7 +445,7 @@ def predicting_tracking(max_dist, pa_parallel, pa_vertical):
                         track_index = n
 
             # ----------------------spajanie do trackov
-            counter = 0;
+            counter = 0
             for j in range(len(mat[f + 1])):
                 x = mat[f][i][0]
                 y = mat[f][i][1]
@@ -532,7 +533,7 @@ def simple_tracking(max_dist):
                         track_index = n
 
             # ----------------------spajanie do trackov
-            counter = 0;
+            counter = 0
             for j in range(len(mat[f + 1])):
                 distance = get_distance(mat[f][i], mat[f + 1][j])
                 if (distance <= max_dist):
@@ -593,7 +594,7 @@ def simple_joining(tracks,threshold):
                 distance = get_distance(point,tracks[candidates[c]][0])
                 if( distance < best_match):
                     best_match = distance
-                    favorite =[last, candidates[c], distance]
+                    favorite = [last, candidates[c], distance]
 
             if(favorite != [-1]):
                 pairs.append(favorite)
@@ -611,7 +612,6 @@ def simple_joining(tracks,threshold):
         if(original_tracks.count(pairs[o][1])>0):
             # print('odstranuje sa '+str(pairs[o][1]))
             original_tracks.remove(pairs[o][1])
-
 
     # print('Adepts for merging: '+str(len(pairs))+'\n'+str(pairs))
     # print('No merging: '+str(len(original_tracks))+'\n'+str(original_tracks))
@@ -785,6 +785,11 @@ def find_multiple_merge(adepts):
     # print('\tfind multiple merge: '+str(series))
     print('\tdone')
     return series
+
+#upravit nezaradene body podla matice MAT
+def try_resolve_2():
+    pass
+
 # ---------------------------------------------------------------------------------------------
 def try_resolve(tracks, unresolved, threshold):
     print('try ro resolve points with threshold set to '+str(threshold)+', '+str(len(tracks))+ ' tracks and '+str(len(unresolved))+' unresolved : calculating...')
@@ -1034,7 +1039,9 @@ print('------------------------------------------')
 print('------------------------------------------')
 print('------------------------------------------')
 print('------------------------------------------')
-file_name = input('File name for parse: [export_1280x720_3_30_radius_12.xml]')
+# file_name = input('File name for parse: [export_1280x720_3_30_radius_12.xml]')
+file_name = 'export_1280x720_3_30_radius_12.xml'
+#file_name = 'anastroj_1280x720_3_30_radius_12.xml'
 resolution = file_name.split('_')
 x,y = resolution[1].split('x')
 
@@ -1051,7 +1058,8 @@ else:
     mat = parse_xml('input_tracking\/'+file_name)
 
 print('-----------------------------------------------------------------------------------------------')
-parameters = input('Parameters (dist a b) for simple tracking: [12,8,8]')
+#parameters = input('Parameters (dist a b) for simple tracking: [12,8,8]')
+parameters = '12 8 8'
 parameters = parameters.split(' ')
 dist = int(parameters[0])
 a = int(parameters[1])
@@ -1064,7 +1072,8 @@ resolve_flow_matrix()
 merged_tracks = tracks.copy()
 print('-----------------------------------------------------------------------------------------------')
 
-join_dist = input('Parameter (dist) for joining tracks: [12]')
+# join_dist = input('Parameter (dist) for joining tracks: [12]')
+join_dist = '12'
 join = True
 
 while(join):
@@ -1079,23 +1088,26 @@ while(join):
   merged_tracks_w = merge_tracks(final,original_tracks,merged_tracks)
   merged_tracks = merged_tracks_w.copy()
 
-  repeat_join = input('Would you like to repeat joining with new set of tracks?')
+  # repeat_join = input('Would you like to repeat joining with new set of tracks?')
+  repeat_join = 'y'
   if (repeat_join == 'y' or repeat_join == 'yes' or repeat_join == 'Y' or repeat_join == 'YES'):
       join = True
   else:
       join = False
 print('-----------------------------------------------------------------------------------------------')
-resolve_dist = input('Parameter (dist) for resolve points: [12]')
+# resolve_dist = input('Parameter (dist) for resolve points: [12]')
+resolve_dist = '12'
 resolve = True
 
-while(resolve):
-  new_merged, new_unresolved = try_resolve(merged_tracks, unresolved_from_tracking, int(resolve_dist))
+while resolve:
+  new_merged, new_unresolved = try_resolve(merged_tracks, unresolved_from_tracking, int(resolve_dist)) #mat pouzit
   if (len(new_unresolved) == len(unresolved_from_tracking)):
     print('No points resolved. ')
     break
   merged_tracks = new_merged.copy()
   unresolved_from_tracking = new_unresolved.copy()
-  repeat_resolve = input('Would you like to repeat resolving?')
+  # repeat_resolve = input('Would you like to repeat resolving?')
+  repeat_resolve = 'y'
 
   if (repeat_resolve == 'y' or repeat_resolve == 'yes' or repeat_resolve == 'Y' or repeat_resolve == 'YES'):
       resolve = True
@@ -1104,26 +1116,31 @@ while(resolve):
 
 
 print('-----------------------------------------------------------------------------------------------')
-file_xml = input('File name for export: ')
+# file_xml = input('File name for export: ')
+file_xml = "some_file.xml"
 generate_tracks_xml_real(merged_tracks,file_xml,frame_rate, pixel_size)
 print('-----------------------------------------------------------------------------------------------')
 
-save = input('Would you like to save as anastroj file?')
+
+#save = input('Would you like to save as anastroj file?')
+save = 'n'
 if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
     file_name = input('File name for anastroj export: ')
     save_as_anastroj_file(tracks, file_name)
 
-show = input('Would you like to show and save img of final tracks?')
+#show = input('Would you like to show and save img of final tracks?')
+
+# show = input('Would you like to show and save img of final tracks?')
+show = 'n'
+Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 10, 12)
+
 if (show == 'y' or show == 'yes' or show == 'Y' or show == 'YES'):
-    name = input('File name:')
+    #name = input('File name:')
     img_tracks = np.zeros((int(y), int(x), 3), np.uint8)
     img = draw_tracks(merged_tracks, img_tracks)
 
-    cv2.imwrite('img\/'+name+'.png', img)
+    #cv2.imwrite('img\/'+name+'.png', img)
     cv2.imshow('Final tracks from tracking', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 print('-----------------------------------------------------------------------------------------------')
-
-
-
