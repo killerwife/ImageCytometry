@@ -787,9 +787,73 @@ def find_multiple_merge(adepts):
     return series
 
 #upravit nezaradene body podla matice MAT
-def try_resolve_2():
-    pass
+def try_resolve_2(tracks, matrix, threshold):
+    num = 0
+    for track_index in range(len(tracks)):
+        candidates_start = []
+        candidates_end = []
+        favorite_start = None
+        favorite_end = None
+        best_match_start = threshold
+        best_match_end = threshold
+        frame_last = tracks[track_index][-1][3]
+        frame_first = tracks[track_index][0][3]
+        # ak nieje posledny frame hlada sa bod na spojenie
+        if frame_last != len(matrix) - 1:
+            for unresolved_index in range(len(matrix[frame_last + 1])):
+                # bod musi byt nezaradeny
+                if matrix[frame_last + 1][unresolved_index][2] == 0 and \
+                    can_append_end(tracks[track_index], matrix[frame_last + 1][unresolved_index]):
+                    candidates_end.append( matrix[frame_last + 1][unresolved_index])
+        if frame_first != 0:
+            for unresolved_index in range(len(matrix[frame_first - 1])):
+                # bod musi byt nezaradeny
+                if matrix[frame_first - 1][unresolved_index][2] == 0 and \
+                        can_append_start(tracks[track_index], matrix[frame_first - 1][unresolved_index]):
+                    candidates_start.append(matrix[frame_first - 1][unresolved_index])
+        # print(candidates_end)
+        # print(candidates_start)
+        # prechadzanie kandidatov na zaciatky
+        if len(candidates_start) > 0:
+            # hladanie bodu najblizsieho k ocakavanej hodnote
+            for c in range(len(candidates_start)):
+                vector = flow_matrix[candidates_start[c][0]][candidates_start[c][1]][1]
+                x = candidates_start[c][0]
+                y = candidates_start[c][1]
+                point = get_expected_point([x, y], vector[0], vector[1])
+                distance = get_distance(point, tracks[track_index][0])
+                if distance < best_match_start:
+                    best_match_start = distance
+                    # pamatame si iba index
+                    favorite_start = candidates_start[c]
+        # prehladavanie kandidatov na konce
+        if len(candidates_end) > 0:
+            # hladanie bodu najblizsieho k ocakavanej hodnote
+            for c in range(len(candidates_end)):
+                vector = flow_matrix[tracks[track_index][-1][0]][tracks[track_index][-1][1]][1]
+                x = tracks[track_index][-1][0]
+                y = tracks[track_index][-1][1]
+                point = get_expected_point([x, y], vector[0], vector[1])
+                distance = get_distance(point, candidates_end[c])
+                if distance < best_match_end:
+                    best_match_end = distance
+                    favorite_end = candidates_end[c]
 
+        if favorite_start is not None:
+            # kandidata pripojime na zaciatok
+            # print('================ pripajame na zaciatok tracku '+str(t)+' '+ str(tracks[t])+' bod: ' +str(unresolved[favorite_start]))
+            num += 1
+            favorite_start[2] = 1
+            tracks[track_index].insert(0, favorite_start)
+            # print(str(tracks[t]))
+        if favorite_end is not None:
+            num += 1
+            # print('================ pripajame na koniec tracku'+str(t)+' '+ str(tracks[t])+' bod: ' +str(unresolved[favorite_end]))
+            favorite_end[2] = 1
+            tracks[track_index].append(favorite_end)
+
+    print('Resolved points=' + str(num))
+    return num
 # ---------------------------------------------------------------------------------------------
 def try_resolve(tracks, unresolved, threshold):
     print('try ro resolve points with threshold set to '+str(threshold)+', '+str(len(tracks))+ ' tracks and '+str(len(unresolved))+' unresolved : calculating...')
@@ -811,6 +875,7 @@ def try_resolve(tracks, unresolved, threshold):
                 elif(tracks[t][-1][3] == (unresolved[u][3] - 1)):
                     if(can_append_end(tracks[t],unresolved[u])):
                         candidates_end.append([u,unresolved[u]])
+
         # prechadzanie kandidatov na zaciatky
         if(len(candidates_start) > 0):
     #         hladanie bodu najblizsieho k ocakavanej hodnote
@@ -1100,19 +1165,22 @@ resolve_dist = '12'
 resolve = True
 
 while resolve:
-  new_merged, new_unresolved = try_resolve(merged_tracks, unresolved_from_tracking, int(resolve_dist)) #mat pouzit
+  num = try_resolve_2(merged_tracks, mat, int(resolve_dist))
+  if num == 0:
+      break
+  '''new_merged, new_unresolved = try_resolve(merged_tracks, unresolved_from_tracking, int(resolve_dist)) #TODO mat pouzit
   if (len(new_unresolved) == len(unresolved_from_tracking)):
     print('No points resolved. ')
     break
   merged_tracks = new_merged.copy()
   unresolved_from_tracking = new_unresolved.copy()
-  # repeat_resolve = input('Would you like to repeat resolving?')
+  repeat_resolve = input('Would you like to repeat resolving?')
   repeat_resolve = 'y'
 
   if (repeat_resolve == 'y' or repeat_resolve == 'yes' or repeat_resolve == 'Y' or repeat_resolve == 'YES'):
       resolve = True
   else:
-      resolve = False
+      resolve = False'''
 
 
 print('-----------------------------------------------------------------------------------------------')
