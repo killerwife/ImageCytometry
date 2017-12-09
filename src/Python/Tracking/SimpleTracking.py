@@ -823,7 +823,7 @@ def try_resolve_2(tracks, matrix, threshold):
         frame_last = tracks[track_index][-1][3]
         frame_first = tracks[track_index][0][3]
         # ak nieje posledny frame hlada sa bod na spojenie
-        if frame_last < len(matrix) - 1:
+        if frame_last != len(matrix) - 1:
             for unresolved_index in range(len(matrix[frame_last + 1])):
                 # bod musi byt nezaradeny
                 if matrix[frame_last + 1][unresolved_index][2] == 0 and \
