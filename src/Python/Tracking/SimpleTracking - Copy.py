@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 import math
 import random
-import Tracking
 
 
 def parse_xml(file):
@@ -41,9 +40,8 @@ def parse_xml(file):
     print('\tdone')
     return mat
 
-
 # ------------------------------------------------------------------------------------------
-def parse_xml_anastroj(file):
+def parse_xmlA(file):
     print('Parsing: ' + file)
     import xml.etree.ElementTree as ET
     tree = ET.parse(file)
@@ -51,14 +49,14 @@ def parse_xml_anastroj(file):
     number = 0
     from math import floor
     tracks = []
-    src_names = []
+    #frame = []
+    #frame.append([10, 20, 1, 2, 19, 14])
+    #tracks.append(frame)
 
-    for child in root: # images in data
-        for child2 in child: # image in images
-            print(str(child2.find('src').text))
-            src_names.append(child2.find('src').text)
-            for child3 in child2: # boundingboxes in image
-                if (child3.tag == 'boundingboxes'):
+    for child in root:
+        for child2 in child:
+            for child3 in child2:
+                if (child3.tag == 'boundingboxes') :
                     boundingboxes = child3
                     number += 1
                     for boundingbox in boundingboxes.iter('boundingbox'):
@@ -70,57 +68,88 @@ def parse_xml_anastroj(file):
                         y = int((y_left + floor(height/2)))
                         track_id = -1
 
+                        unresolved_from_tracking.append([x, y, 0, number, width, height])
+
+                """
                         for att in boundingbox.iter('attribute'):
-                            if (att.text != None):
-                                track_id = (att.text)
+                            track_id = (att.text)
+                            print('T ID: ', track_id)
 
                         if (track_id != -1):
-                            if (str(track_id) != 'false'):
-                                if (track_id >= str(len(tracks))):
-                                    # for pre tolko, kolko ich treba este pridat
-                                    print('TI ', (track_id))
-                                    print('tracks: ', int(len(tracks)) + 1)
-                                    count_to_add = int(track_id) - int(len(tracks)) + 1
-                                    for i in range(count_to_add):
-                                        track = []
-                                        tracks.append(track)
-                                tracks[int(track_id)].append([x, y, 1, number, width, height])
+                            print(x, y, 1, number, width, height)
+                            #tracks[track_id][number].append([x, y, 1, number, width, height])
+                            #frame.append([x, y, 1, number, width, height])
+                            #tracks.append(frame)
+                            #if (track_id in tracks):
+                            if (len(tracks) > int(track_id)):
+                                print('ID uz je')
+                                tracks[track_id].append([x, y, 1, number, width, height])
 
-                        if (number >= len(mat)):
-                            # for pre tolko, kolko ich treba este pridat
-                            count_to_add = int(number) - int(len(mat)) #+ 1
-                            for i in range(count_to_add):
+                            else:
+                                print('ID nie je')
                                 frame = []
-                                mat.append(frame)
-                        if (track_id == -1):
-                            mat[int(number - 1)].append([x, y, 0, number, width, height])
+                                frame.append([x, y, 1, number, width, height])
+                                tracks.append(frame)
+                                print('----- ', track_id)
                         else:
-                            mat[int(number - 1)].append([x, y, 1, number, width, height])
+                            unresolved_from_tracking.append([x, y, 0, number, width, height])
+            #tracks.append(frame)
+            """
+
 
 
     print('--- *************** TRACKS: ************************** ---')
     print(tracks)
     print('- - - - - - - - - - - - - - - - - - - - - - - - ')
-    print('--- ***************** MATRIX: ************************ ---')
-    print(mat)
-    print('- - - - - - - - - - - - - - - - - - - - - - - - ')
-    print(src_names)
-    return tracks, mat, src_names
+    print(unresolved_from_tracking)
+    print('--- ***************** UNRESOLVED: ************************ ---')
+    return tracks, unresolved_from_tracking
 # ------------------------------------------------------------------------------------------
-def save_as_anastroj_file(tracks, src_names, file_name):
-    print('save file as anastroj: ', file_name)
+def parse_xml_anastroj(file):
+    print('Parsing: ' + file)
+    import xml.etree.ElementTree as ET
+    tree = ET.parse(file)
+    root = tree.getroot()
+    mat = []
+    number = 0
+    from math import floor
+
+    for child in root:
+        for child2 in child:
+            for child3 in child2:
+                if (child3.tag == 'boundingboxes') :
+                    boundingboxes = child3
+                    number += 1
+                    frame = []
+                    for boundingbox in boundingboxes.iter('boundingbox'):
+                        x_left = int(boundingbox.find('x_left_top').text)
+                        y_left = int(boundingbox.find('y_left_top').text)
+                        width = int(boundingbox.find('width').text)
+                        height = int(boundingbox.find('height').text)
+                        x = int((x_left + floor(width / 2)))
+                        y = int((y_left + floor(height/2)))
+
+                        print(x, y)
+                        frame.append([x, y, 0, number, width, height])
+                    mat.append(frame)
+
+    print('--- ********** ---')
+    #print('\tmatica: ' + str(mat) )
+    print('\tdone')
+    return mat
+
+# ------------------------------------------------------------------------------------------
+def save_as_anastroj_file(tracks, file_name):
+    print (tracks)
     import xml.etree.ElementTree as element
     from math import floor
-    root = element.Element("data")
+    root =element.Element("data")
     images = element.SubElement(root, "images")
-
+    print(len(mat))
     for x in range(len(mat)):
         image = element.SubElement(images,"image")
-
-        src = element.SubElement(image, "src")
-        src.text = str(src_names[x])
-
         boundingboxes = element.SubElement(image,"boundingboxes")
+
         for y in range(len(mat[x])):
             boundingbox = element.SubElement(boundingboxes,"boundingbox")
             x_left_top = element.SubElement(boundingbox, "x_left_top")
@@ -141,10 +170,19 @@ def save_as_anastroj_file(tracks, src_names, file_name):
                 if (mat[x][y] in tracks[n]):
                     attribute.text = str(n)
 
+            """""""""
+            for i_track in range(len(tracks)):
+                for i_i_track in range(len(tracks[i_track])):
+                    if((tracks[i_track][i_i_track]) == (cell)):
+                        print("cell: ", str(cell), " track: ", str(i_track), " frame: ", str(i_i_track))
+                        attribute.text = str(i_track)
+            """""""""
+
     tree = element.ElementTree(root)
     tree.write('output_tracking\/' + file_name + '.xml')
     print('Done')
 # ------------------------------------------------------------------------------------------
+
 # metoda generuje xml popisujuce vytvorene tracky. Hodnoty (suradnice, casovy udaj) su prepocitane na microm a microsec- podla simulacie
 def generate_tracks_xml_real(tracks, file_name, frame_rate, pixel_size):
 
@@ -460,7 +498,7 @@ def predicting_tracking(max_dist, pa_parallel, pa_vertical):
             prev = False
             if (mat[f][i][2] == 0):
                 mat[f][i][2] = 1
-                track_index = len(tracks) #- 1 #............
+                track_index = len(tracks)
                 tracks.append([mat[f][i]])
             else:
                 prev = True
@@ -469,7 +507,7 @@ def predicting_tracking(max_dist, pa_parallel, pa_vertical):
                         track_index = n
 
             # ----------------------spajanie do trackov
-            counter = 0
+            counter = 0;
             for j in range(len(mat[f + 1])):
                 x = mat[f][i][0]
                 y = mat[f][i][1]
@@ -557,7 +595,7 @@ def simple_tracking(max_dist):
                         track_index = n
 
             # ----------------------spajanie do trackov
-            counter = 0
+            counter = 0;
             for j in range(len(mat[f + 1])):
                 distance = get_distance(mat[f][i], mat[f + 1][j])
                 if (distance <= max_dist):
@@ -618,7 +656,7 @@ def simple_joining(tracks,threshold):
                 distance = get_distance(point,tracks[candidates[c]][0])
                 if( distance < best_match):
                     best_match = distance
-                    favorite = [last, candidates[c], distance]
+                    favorite =[last, candidates[c], distance]
 
             if(favorite != [-1]):
                 pairs.append(favorite)
@@ -636,6 +674,7 @@ def simple_joining(tracks,threshold):
         if(original_tracks.count(pairs[o][1])>0):
             # print('odstranuje sa '+str(pairs[o][1]))
             original_tracks.remove(pairs[o][1])
+
 
     # print('Adepts for merging: '+str(len(pairs))+'\n'+str(pairs))
     # print('No merging: '+str(len(original_tracks))+'\n'+str(original_tracks))
@@ -809,75 +848,6 @@ def find_multiple_merge(adepts):
     # print('\tfind multiple merge: '+str(series))
     print('\tdone')
     return series
-
-#upravit nezaradene body podla matice MAT
-def try_resolve_2(tracks, matrix, threshold):
-    num = 0
-    for track_index in range(len(tracks)):
-        candidates_start = []
-        candidates_end = []
-        favorite_start = None
-        favorite_end = None
-        best_match_start = threshold
-        best_match_end = threshold
-        frame_last = tracks[track_index][-1][3]
-        frame_first = tracks[track_index][0][3]
-        # ak nieje posledny frame hlada sa bod na spojenie
-        if frame_last != len(matrix) - 1:
-            for unresolved_index in range(len(matrix[frame_last + 1])):
-                # bod musi byt nezaradeny
-                if matrix[frame_last + 1][unresolved_index][2] == 0 and \
-                    can_append_end(tracks[track_index], matrix[frame_last + 1][unresolved_index]):
-                    candidates_end.append( matrix[frame_last + 1][unresolved_index])
-        if frame_first != 0:
-            for unresolved_index in range(len(matrix[frame_first - 1])):
-                # bod musi byt nezaradeny
-                if matrix[frame_first - 1][unresolved_index][2] == 0 and \
-                        can_append_start(tracks[track_index], matrix[frame_first - 1][unresolved_index]):
-                    candidates_start.append(matrix[frame_first - 1][unresolved_index])
-        # print(candidates_end)
-        # print(candidates_start)
-        # prechadzanie kandidatov na zaciatky
-        if len(candidates_start) > 0:
-            # hladanie bodu najblizsieho k ocakavanej hodnote
-            for c in range(len(candidates_start)):
-                vector = flow_matrix[candidates_start[c][0]][candidates_start[c][1]][1]
-                x = candidates_start[c][0]
-                y = candidates_start[c][1]
-                point = get_expected_point([x, y], vector[0], vector[1])
-                distance = get_distance(point, tracks[track_index][0])
-                if distance < best_match_start:
-                    best_match_start = distance
-                    # pamatame si iba index
-                    favorite_start = candidates_start[c]
-        # prehladavanie kandidatov na konce
-        if len(candidates_end) > 0:
-            # hladanie bodu najblizsieho k ocakavanej hodnote
-            for c in range(len(candidates_end)):
-                vector = flow_matrix[tracks[track_index][-1][0]][tracks[track_index][-1][1]][1]
-                x = tracks[track_index][-1][0]
-                y = tracks[track_index][-1][1]
-                point = get_expected_point([x, y], vector[0], vector[1])
-                distance = get_distance(point, candidates_end[c])
-                if distance < best_match_end:
-                    best_match_end = distance
-                    favorite_end = candidates_end[c]
-
-        if favorite_start is not None:
-            # kandidata pripojime na zaciatok
-            # print('================ pripajame na zaciatok tracku '+str(t)+' '+ str(tracks[t])+' bod: ' +str(unresolved[favorite_start]))
-            num += 1
-            favorite_start[2] = 1
-            tracks[track_index].insert(0, favorite_start)
-            # print(str(tracks[t]))
-        if favorite_end is not None:
-            num += 1
-            # print('================ pripajame na koniec tracku'+str(t)+' '+ str(tracks[t])+' bod: ' +str(unresolved[favorite_end]))
-            favorite_end[2] = 1
-            tracks[track_index].append(favorite_end)
-
-    print('Resolved points=' + str(num))
-    return num
 # ---------------------------------------------------------------------------------------------
 def try_resolve(tracks, unresolved, threshold):
     print('try ro resolve points with threshold set to '+str(threshold)+', '+str(len(tracks))+ ' tracks and '+str(len(unresolved))+' unresolved : calculating...')
@@ -899,7 +869,6 @@ def try_resolve(tracks, unresolved, threshold):
                 elif(tracks[t][-1][3] == (unresolved[u][3] - 1)):
                     if(can_append_end(tracks[t],unresolved[u])):
                         candidates_end.append([u,unresolved[u]])
-
         # prechadzanie kandidatov na zaciatky
         if(len(candidates_start) > 0):
     #         hladanie bodu najblizsieho k ocakavanej hodnote
@@ -1128,10 +1097,7 @@ print('------------------------------------------')
 print('------------------------------------------')
 print('------------------------------------------')
 print('------------------------------------------')
-# file_name = input('File name for parse: [export_1280x720_3_30_radius_12.xml]')
-#file_name = 'export_1280x720_3_30_radius_12.xml'
-#file_name = 'anastroj_1280x720_3_30_radius_12.xml'
-file_name = 'anastroj_1280x720_3_30_12px.xml'
+file_name = input('File name for parse: [export_1280x720_3_30_radius_12.xml]')
 resolution = file_name.split('_')
 x,y = resolution[1].split('x')
 
@@ -1141,24 +1107,21 @@ pixel_size = 1/int(resolution[2])
 tracks = []
 unresolved_from_tracking = []
 mat =[]
-src_names = []
 
 if (resolution[0] == 'anastroj'):
-    tracks, mat, src_names = parse_xml_anastroj('input_tracking\/'+file_name)
-    #save_as_anastroj_file(tracks, src_names, 'mojSub2')
+    #mat = parse_xml_anastroj('input_tracking\/'+file_name)
+    tracks, unresolved_from_tracking = parse_xmlA('input_tracking\/' + file_name)
 else:
     mat = parse_xml('input_tracking\/'+file_name)
-
-if (str(len(tracks) == '0')):
-    print('-----------------------------------------------------------------------------------------------')
-    #parameters = input('Parameters (dist a b) for simple tracking: [12,8,8]')
-    parameters = '12 8 8'
+    parameters = input('Parameters (dist a b) for simple tracking: [12,8,8]')
     parameters = parameters.split(' ')
     dist = int(parameters[0])
     a = int(parameters[1])
     b = int(parameters[2])
     tracks, unresolved_from_tracking = predicting_tracking(dist, a, b)
 
+print('-----------------------------------------------------------------------------------------------')
+# TODO tuto to bolo :D
 flow_matrix = create_flow_matrix(int(x), int(y))
 calculate_flow_matrix()
 resolve_flow_matrix()
@@ -1166,8 +1129,7 @@ resolve_flow_matrix()
 merged_tracks = tracks.copy()
 print('-----------------------------------------------------------------------------------------------')
 
-# join_dist = input('Parameter (dist) for joining tracks: [12]')
-join_dist = '12'
+join_dist = input('Parameter (dist) for joining tracks: [12]')
 join = True
 
 while(join):
@@ -1182,62 +1144,51 @@ while(join):
   merged_tracks_w = merge_tracks(final,original_tracks,merged_tracks)
   merged_tracks = merged_tracks_w.copy()
 
-  # repeat_join = input('Would you like to repeat joining with new set of tracks?')
-  repeat_join = 'y'
+  repeat_join = input('Would you like to repeat joining with new set of tracks?')
   if (repeat_join == 'y' or repeat_join == 'yes' or repeat_join == 'Y' or repeat_join == 'YES'):
       join = True
   else:
       join = False
 print('-----------------------------------------------------------------------------------------------')
-# resolve_dist = input('Parameter (dist) for resolve points: [12]')
-resolve_dist = '12'
+resolve_dist = input('Parameter (dist) for resolve points: [12]')
 resolve = True
 
-while resolve:
-  num = try_resolve_2(merged_tracks, mat, int(resolve_dist))
-  if num == 0:
-      break
-
-'''new_merged, new_unresolved = try_resolve(merged_tracks, unresolved_from_tracking, int(resolve_dist)) #TODO mat pouzit
+while(resolve):
+  new_merged, new_unresolved = try_resolve(merged_tracks, unresolved_from_tracking, int(resolve_dist))
   if (len(new_unresolved) == len(unresolved_from_tracking)):
     print('No points resolved. ')
     break
   merged_tracks = new_merged.copy()
   unresolved_from_tracking = new_unresolved.copy()
   repeat_resolve = input('Would you like to repeat resolving?')
-  repeat_resolve = 'y'
 
   if (repeat_resolve == 'y' or repeat_resolve == 'yes' or repeat_resolve == 'Y' or repeat_resolve == 'YES'):
       resolve = True
   else:
-      resolve = False'''
+      resolve = False
 
 
 print('-----------------------------------------------------------------------------------------------')
-# file_xml = input('File name for export: ')
-file_xml = "some_file.xml"
+file_xml = input('File name for export: ')
 generate_tracks_xml_real(merged_tracks,file_xml,frame_rate, pixel_size)
 print('-----------------------------------------------------------------------------------------------')
 
-#show = input('Would you like to show and save img of final tracks?')
-
-# show = input('Would you like to show and save img of final tracks?')
-show = 'n'
-Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 10, 12)
-
-#save = input('Would you like to save as anastroj file?')
-save = 'y'
+save = input('Would you like to save as anastroj file?')
 if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
     file_name = input('File name for anastroj export: ')
-    save_as_anastroj_file(tracks, src_names, file_name)
+    save_as_anastroj_file(tracks, file_name)
 
+show = input('Would you like to show and save img of final tracks?')
 if (show == 'y' or show == 'yes' or show == 'Y' or show == 'YES'):
-    #name = input('File name:')
+    name = input('File name:')
     img_tracks = np.zeros((int(y), int(x), 3), np.uint8)
     img = draw_tracks(merged_tracks, img_tracks)
 
-    #cv2.imwrite('img\/'+name+'.png', img)
+    cv2.imwrite('img\/'+name+'.png', img)
     cv2.imshow('Final tracks from tracking', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 print('-----------------------------------------------------------------------------------------------')
+
+
+
