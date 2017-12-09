@@ -1,6 +1,7 @@
 from BoundingBox import *
 import math
-
+import cv2
+import numpy as np
 
 class Track:
     def __init__(self, bounding_boxes, track=None):
@@ -15,6 +16,15 @@ class Track:
         self.speed = 0
         self.angle = 0
         self.vector = (0, 0)
+        self.kalman = cv2.KalmanFilter(4, 2)
+        self.kalman.measurementMatrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0]], np.float32)
+        self.kalman.transitionMatrix = np.array([[1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0], [0, 0, 0, 1]], np.float32)
+        self.kalman.processNoiseCov = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], np.float32) * 0.03
+
+        for bb in self.bounding_boxes:
+            mp = np.array([[np.float32(bb.x)], [np.float32(bb.y)]])
+            self.kalman.correct(mp)
+            self.kalman.predict()
 
     def add_point_to_end(self, bounding_box):
         self.bounding_boxes.append(bounding_box)
@@ -23,6 +33,9 @@ class Track:
     def merge_tracks(self, other):
         for bb in other.bounding_boxes:
             self.bounding_boxes.append(bb)
+            mp = np.array([[np.float32(bb.x)], [np.float32(bb.y)]])
+            self.kalman.correct(mp)
+            self.kalman.predict()
 
     def compute_speed(self):
         speed = 0
@@ -41,6 +54,15 @@ class Track:
             sum_y += self.bounding_boxes[index].x - self.bounding_boxes[index + 1].x
             count += 1
         self.vector = (sum_x / count, sum_y / count)
+
+    def kalman_predict(self, count):
+        for i in range(count):
+            frame = self.bounding_boxes[-1].frame_index + 1
+            predict = self.kalman.predict()
+            self.bounding_boxes.append(BoundingBox(int(predict[0]), int(predict[1]),1,frame,0,0))
+            mp = np.array([[np.float32(predict[0])], [np.float32(predict[1])]])
+            self.kalman.correct(mp)
+
 
 
     def __str__(self):

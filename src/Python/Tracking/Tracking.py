@@ -61,6 +61,9 @@ def merge_tracks(track_array, unresolved_points, difference, radius = 12):
     y = 10'''
     merged = join_tracks_2(tracks, array_for_join)
     print_track(tracks, array_for_join, array_for_join_points, merged, before)
+    for track in merged:
+        track.kalman_predict(2)
+    print_track(tracks, array_for_join, array_for_join_points, merged, before)
 
 def join_tracks_2(tracks, tracks_for_merge):
     print("start joining")

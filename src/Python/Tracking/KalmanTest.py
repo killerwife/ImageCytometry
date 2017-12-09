@@ -23,7 +23,7 @@ def reset():
     frame = np.zeros((400,400,3), np.uint8)
 
 cv2.namedWindow("kalman")
-cv2.setMouseCallback("kalman",onmouse);
+cv2.setMouseCallback("kalman",onmouse)
 kalman = cv2.KalmanFilter(4,2)
 kalman.measurementMatrix = np.array([[1,0,0,0],[0,1,0,0]],np.float32)
 kalman.transitionMatrix = np.array([[1,0,1,0],[0,1,0,1],[0,0,1,0],[0,0,0,1]],np.float32)
