@@ -48,7 +48,7 @@ def parse_xml_anastroj(file):
     import xml.etree.ElementTree as ET
     tree = ET.parse(file)
     root = tree.getroot()
-    number = 0
+    number = -1
     from math import floor
     tracks = []
     src_names = []
@@ -88,14 +88,15 @@ def parse_xml_anastroj(file):
 
                         if (number >= len(mat)):
                             # for pre tolko, kolko ich treba este pridat
-                            count_to_add = int(number) - int(len(mat)) #+ 1
+                            count_to_add = int(number) - int(len(mat)) + 1
                             for i in range(count_to_add):
                                 frame = []
                                 mat.append(frame)
                         if (track_id == -1):
-                            mat[int(number - 1)].append([x, y, 0, number, width, height])
+                            mat[int(number)].append([x, y, 0, number, width, height])
                         else:
-                            mat[int(number - 1)].append([x, y, 1, number, width, height])
+                            mat[int(number)].append([x, y, 1, number, width, height])
+                    #number += 1
 
 
     print('--- *************** TRACKS: ************************** ---')
@@ -1219,17 +1220,20 @@ file_xml = "some_file.xml"
 generate_tracks_xml_real(merged_tracks,file_xml,frame_rate, pixel_size)
 print('-----------------------------------------------------------------------------------------------')
 
-#show = input('Would you like to show and save img of final tracks?')
+save = 'y'
+if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
+    file_name = input('File name for anastroj export: ')
+    save_as_anastroj_file(tracks, src_names, file_name)
 
 # show = input('Would you like to show and save img of final tracks?')
 show = 'n'
 Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 10, 12)
 
 #save = input('Would you like to save as anastroj file?')
-save = 'y'
-if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
-    file_name = input('File name for anastroj export: ')
-    save_as_anastroj_file(tracks, src_names, file_name)
+#save = 'y'
+#if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
+#    file_name = input('File name for anastroj export: ')
+#    save_as_anastroj_file(tracks, src_names, file_name)
 
 if (show == 'y' or show == 'yes' or show == 'Y' or show == 'YES'):
     #name = input('File name:')
