@@ -30,7 +30,7 @@ def parse_xml(file):
             par_y = int(particles[p].attributes['y'].value)
             # frame.append([par_number,par_x, par_y])
 
-            frame.append([par_x, par_y, 0, number, 0, 0])
+            frame.append([par_x, par_y, 0, number, 26, 26])
             # if (fill_matrix):
             #     matrix[par_x][par_y].append(int(number))
             #     total_count += 1
@@ -111,15 +111,28 @@ def parse_xml_anastroj(file):
 def save_as_anastroj_file(tracks, src_names, file_name):
     print('save file as anastroj: ', file_name)
     import xml.etree.ElementTree as element
+    from io import BytesIO
     from math import floor
+
+    document = element.Element('outer')
+    node = element.SubElement(document, 'inner')
+    et = element.ElementTree(document)
+    f = BytesIO()
+    et.write(f, encoding='utf-8', xml_declaration=True)
+    print(f.getvalue())  # your XML file, encoded as UTF-8
+    #root = element.SubElement(et,"data")
+
+
+
     root = element.Element("data")
     images = element.SubElement(root, "images")
 
     for x in range(len(mat)):
         image = element.SubElement(images,"image")
 
-        src = element.SubElement(image, "src")
-        src.text = str(src_names[x])
+        if (len(src_names) != 0):
+            src = element.SubElement(image, "src")
+            src.text = str(src_names[x])
 
         boundingboxes = element.SubElement(image,"boundingboxes")
         for y in range(len(mat[x])):
@@ -145,6 +158,24 @@ def save_as_anastroj_file(tracks, src_names, file_name):
     tree = element.ElementTree(root)
     tree.write('output_tracking\/' + file_name + '.xml')
     print('Done')
+# ------------------------------------------------------------------------------------------
+def remove_one_cell_from_all_frame(mat): # zmaze 1 bunku z kazdeho framu - bunku vyberie nahodne
+    from random import randint
+    for frame in range(len(mat)):
+        rnd = randint(0, len(mat[frame]) - 1)
+        mat[frame].pop(rnd)
+    return mat
+# ------------------------------------------------------------------------------------------
+def remove_some_cell_random(mat, count): # zmaze pocet bunku zadanych parametrom z matice - bunku vyberie nahodne
+    from random import randint
+    for i in range(count):
+        rnd1 = randint(0, len(mat) - 1)
+        rnd2 = randint(0, len(mat[rnd1]) - 1)
+        print('-------------------------------------------')
+        print("LEN: ", len(mat[rnd1])," RND: ", rnd1, " RND2: ", rnd2, " cell: ", mat[rnd1])
+        mat[rnd1].pop(rnd2)
+        print("LEN: ", len(mat[rnd1]), " RND: ", rnd1, " RND2: ", rnd2, " cell: ", mat[rnd1])
+    return mat
 # ------------------------------------------------------------------------------------------
 # metoda generuje xml popisujuce vytvorene tracky. Hodnoty (suradnice, casovy udaj) su prepocitane na microm a microsec- podla simulacie
 def generate_tracks_xml_real(tracks, file_name, frame_rate, pixel_size):
@@ -1131,8 +1162,10 @@ print('------------------------------------------')
 print('------------------------------------------')
 # file_name = input('File name for parse: [export_1280x720_3_30_radius_12.xml]')
 #file_name = 'export_1280x720_3_30_radius_12.xml'
-#file_name = 'anastroj_1280x720_3_30_radius_12.xml'
-file_name = 'anastroj_1280x720_3_30_12px.xml'
+file_name = 'anastroj_1280x720_3_30_radius_12.xml'
+#file_name = 'anastroj_1280x720_3_30_12px.xml'
+#--toto nie, to je ine:
+# file_name = 'export_800x600_3_30_12px.xml'
 resolution = file_name.split('_')
 x,y = resolution[1].split('x')
 
@@ -1146,9 +1179,13 @@ src_names = []
 
 if (resolution[0] == 'anastroj'):
     tracks, mat, src_names = parse_xml_anastroj('input_tracking\/'+file_name)
-    #save_as_anastroj_file(tracks, src_names, 'mojSub2')
 else:
     mat = parse_xml('input_tracking\/'+file_name)
+
+# zmaze niektore bunky z anastroja - z matice mat !!!!!!!!!!!!!!
+#mat = remove_one_cell_from_all_frame(mat)
+#mat = remove_one_cell_from_all_frame(mat)
+mat = remove_some_cell_random(mat, 50)
 
 if (str(len(tracks) == '0')):
     print('-----------------------------------------------------------------------------------------------')
@@ -1220,27 +1257,41 @@ file_xml = "some_file.xml"
 generate_tracks_xml_real(merged_tracks,file_xml,frame_rate, pixel_size)
 print('-----------------------------------------------------------------------------------------------')
 
-save = 'y'
+# --- ***
+show = 'y'
+save = input('1 Would you like to save as anastroj file?')
+if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
+    file_name = input('1 File name for anastroj export: ')
+    save_as_anastroj_file(tracks, src_names, file_name)
+
+if (show == 'y' or show == 'yes' or show == 'Y' or show == 'YES'):
+    name = input('1 File name for img:')
+    img_tracks = np.zeros((int(y), int(x), 3), np.uint8)
+    img = draw_tracks(merged_tracks, img_tracks)
+
+    cv2.imwrite('img\/'+name+'.png', img)
+    cv2.imshow('1 Final tracks from tracking', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+# --- ***
+
+
+# show = input('Would you like to show and save img of final tracks?')
+show = 'y'
+Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 10, 12)
+
+save = input('Would you like to save as anastroj file?')
+#save = 'y'
 if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
     file_name = input('File name for anastroj export: ')
     save_as_anastroj_file(tracks, src_names, file_name)
 
-# show = input('Would you like to show and save img of final tracks?')
-show = 'n'
-Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 10, 12)
-
-#save = input('Would you like to save as anastroj file?')
-#save = 'y'
-#if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
-#    file_name = input('File name for anastroj export: ')
-#    save_as_anastroj_file(tracks, src_names, file_name)
-
 if (show == 'y' or show == 'yes' or show == 'Y' or show == 'YES'):
-    #name = input('File name:')
+    name = input('File name for img:')
     img_tracks = np.zeros((int(y), int(x), 3), np.uint8)
     img = draw_tracks(merged_tracks, img_tracks)
 
-    #cv2.imwrite('img\/'+name+'.png', img)
+    cv2.imwrite('img\/'+name+'.png', img)
     cv2.imshow('Final tracks from tracking', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()

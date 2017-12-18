@@ -26694,7 +26694,10 @@
           <y_left_top>138</y_left_top>
           <width>34</width>
           <height>25</height>
-          <class name="bunka" />
+          <class name="hrac">
+            <attribute name="ClassId">hrac</attribute>
+            <attribute name="isBlurred">false</attribute>
+          </class>
         </boundingbox>
         <boundingbox>
           <x_left_top>1011</x_left_top>
@@ -38036,7 +38039,10 @@
           <y_left_top>93</y_left_top>
           <width>26</width>
           <height>22</height>
-          <class name="bunka" />
+          <class name="hrac">
+            <attribute name="ClassId">hrac</attribute>
+            <attribute name="isBlurred">false</attribute>
+          </class>
         </boundingbox>
         <boundingbox>
           <x_left_top>191</x_left_top>
@@ -38429,7 +38435,10 @@
           <y_left_top>93</y_left_top>
           <width>27</width>
           <height>22</height>
-          <class name="bunka" />
+          <class name="hrac">
+            <attribute name="ClassId">hrac</attribute>
+            <attribute name="isBlurred">false</attribute>
+          </class>
         </boundingbox>
         <boundingbox>
           <x_left_top>169</x_left_top>
@@ -38822,7 +38831,10 @@
           <y_left_top>93</y_left_top>
           <width>26</width>
           <height>22</height>
-          <class name="bunka" />
+          <class name="hrac">
+            <attribute name="ClassId">hrac</attribute>
+            <attribute name="isBlurred">false</attribute>
+          </class>
         </boundingbox>
         <boundingbox>
           <x_left_top>168</x_left_top>
@@ -39215,7 +39227,10 @@
           <y_left_top>93</y_left_top>
           <width>26</width>
           <height>22</height>
-          <class name="bunka" />
+          <class name="hrac">
+            <attribute name="ClassId">hrac</attribute>
+            <attribute name="isBlurred">false</attribute>
+          </class>
         </boundingbox>
         <boundingbox>
           <x_left_top>157</x_left_top>
@@ -39608,7 +39623,10 @@
           <y_left_top>92</y_left_top>
           <width>26</width>
           <height>23</height>
-          <class name="bunka" />
+          <class name="hrac">
+            <attribute name="ClassId">hrac</attribute>
+            <attribute name="isBlurred">false</attribute>
+          </class>
         </boundingbox>
         <boundingbox>
           <x_left_top>151</x_left_top>
