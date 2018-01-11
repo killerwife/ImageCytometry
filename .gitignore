@@ -47,3 +47,9 @@ Temporary Items
 .apdisk
 .idea
 *.pyc
+*.suo
+*.ipch
+src/C++/DetectionOfCells/.vs/
+src/C++/DetectionOfCells/DetectionOfCells/Debug
+src/C++/DetectionOfCells/DetectionOfCells/x64
+src/C++/DetectionOfCells/x64
