@@ -5,26 +5,20 @@ import numpy as np
 
 class Track:
     def __init__(self, bounding_boxes, track=None):
+        self.speed = 0
+        self.id = -1
         if track is not None:
             self.bounding_boxes = []
+            self.id = track.id
             for bb in track.bounding_boxes:
-                self.bounding_boxes.append(BoundingBox(bb.x, bb.y, 1 , bb.frame_index,0,0))
+                self.bounding_boxes.append(BoundingBox(bb.x, bb.y, 1 , bb.frame_index,bb.width,bb.height))
         elif bounding_boxes is not None:
             self.bounding_boxes = []
             for bb in bounding_boxes:
-                self.bounding_boxes.append(BoundingBox(bb[0], bb[1], bb[2], bb[3], 0, 0))
-        self.speed = 0
+                self.bounding_boxes.append(BoundingBox(bb[0], bb[1], bb[2], bb[3], bb[4], bb[5]))
         self.angle = 0
         self.vector = (0, 0)
-        self.kalman = cv2.KalmanFilter(4, 2)
-        self.kalman.measurementMatrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0]], np.float32)
-        self.kalman.transitionMatrix = np.array([[1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0], [0, 0, 0, 1]], np.float32)
-        self.kalman.processNoiseCov = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], np.float32) * 0.03
-
-        for bb in self.bounding_boxes:
-            mp = np.array([[np.float32(bb.x)], [np.float32(bb.y)]])
-            self.kalman.correct(mp)
-            self.kalman.predict()
+        self.speed = 0
 
     def add_point_to_end(self, bounding_box):
         self.bounding_boxes.append(bounding_box)
@@ -33,17 +27,6 @@ class Track:
     def merge_tracks(self, other):
         for bb in other.bounding_boxes:
             self.bounding_boxes.append(bb)
-            mp = np.array([[np.float32(bb.x)], [np.float32(bb.y)]])
-            self.kalman.correct(mp)
-            self.kalman.predict()
-
-    def compute_speed(self):
-        speed = 0
-        count = 0
-        for index in range(len(self.bounding_boxes) - 1):
-            speed += get_distance(self.bounding_boxes[index], self.bounding_boxes[index + 1])
-            count += 1
-        self.speed = speed / count
 
     def compute_avg_vector(self):
         sum_x = 0
@@ -55,15 +38,30 @@ class Track:
             count += 1
         self.vector = (sum_x / count, sum_y / count)
 
-    def kalman_predict(self, count):
-        for i in range(count):
-            frame = self.bounding_boxes[-1].frame_index + 1
-            predict = self.kalman.predict()
-            self.bounding_boxes.append(BoundingBox(int(predict[0]), int(predict[1]),1,frame,0,0))
-            mp = np.array([[np.float32(predict[0])], [np.float32(predict[1])]])
-            self.kalman.correct(mp)
+
+    def compute_speed(self):
+        if len(self.bounding_boxes) == 0:
+            self.speed = 0
+            return
+        total_distance = 0
+        count = 0
+        for index in range(len(self.bounding_boxes) - 1):
+            first = self.bounding_boxes[index]
+            second = self.bounding_boxes[index + 1]
+            distance_x = abs(second.x - first.x)
+            distance_y = abs(second.y - first.y)
+            total_distance += math.sqrt(distance_x**2 + distance_y**2)
+            count += 1
+
+        self.speed = total_distance / count
 
 
+
+    def haveBB(self, array):
+        for bb in self.bounding_boxes:
+            if bb.x == array[0] and bb.y == array[1] and bb.frame_index == array[3]:
+                return True
+        return False
 
     def __str__(self):
         output = ""
@@ -90,8 +88,52 @@ class MergeTracks:
         self.first_track = first_track
         self.second_track = second_track
         self.sum = -1
+        self.distance = -1
 
     def mean_squared_error(self):
+        sum_pom = 0
+        first_track_last = self.first_track.bounding_boxes[-1]
+        first_track_second_last = self.first_track.bounding_boxes[-2]
+        first_track_third_last = self.first_track.bounding_boxes[-3]
+        diff = self.second_track.bounding_boxes[0].frame_index - self.first_track.bounding_boxes[-1].frame_index
+        for index in range(len(self.second_track.bounding_boxes)):
+            # odhadnut bod na indexe
+            x = first_track_last.x + (index + diff) * (first_track_last.x - first_track_second_last.x)
+            y = first_track_last.y + (index + diff) * (first_track_last.y - first_track_second_last.y)
+            #x = first_track_last.x + (index + diff) * ((first_track_last.x - first_track_second_last.x)/2 + (first_track_second_last.x - first_track_third_last.x)/2)
+            #y = first_track_last.y + (index + diff) * ((first_track_last.y - first_track_second_last.y)/2 + (first_track_second_last.y - first_track_third_last.y)/2)
+            # skutocny bod na indexe
+            x2 = self.second_track.bounding_boxes[index].x
+            y2 = self.second_track.bounding_boxes[index].y
+            sum_pom += (abs(x - x2) + abs(y - y2))**2
+        self.sum = sum_pom / len(self.second_track.bounding_boxes)
+
+    def mean_squared_error_n_last(self,last_bb=3):
+        last = last_bb
+        if last_bb > len(self.first_track.bounding_boxes):
+            last = len(self.first_track.bounding_boxes)
+
+        sum_pom = 0
+        actual_index = len(self.first_track.bounding_boxes) - last
+        x = self.first_track.bounding_boxes[-1].x
+        y = self.first_track.bounding_boxes[-1].y
+        diff = self.second_track.bounding_boxes[0].frame_index - self.first_track.bounding_boxes[-1].frame_index
+        for index in range(len(self.second_track.bounding_boxes) + diff):
+            if actual_index >= len(self.first_track.bounding_boxes) - 2:
+                actual_index = len(self.first_track.bounding_boxes) - last
+            x = x + (self.first_track.bounding_boxes[actual_index + 1].x - self.first_track.bounding_boxes[actual_index].x)
+            y = y + (self.first_track.bounding_boxes[actual_index + 1].y - self.first_track.bounding_boxes[actual_index].y)
+            actual_index += 1
+            if index >= diff:
+                x2 = self.second_track.bounding_boxes[index - diff].x
+                y2 = self.second_track.bounding_boxes[index - diff].y
+                sum_pom += (abs(x - x2) + abs(y - y2)) ** 2
+
+
+        self.sum = sum_pom / len(self.second_track.bounding_boxes)
+
+
+    def mean_squared_error_alfa_n(self):
         sum_pom = 0
         first_track_last = self.first_track.bounding_boxes[-1]
         first_track_second_last = self.first_track.bounding_boxes[-2]
@@ -103,8 +145,27 @@ class MergeTracks:
             # skutocny bod na indexe
             x2 = self.second_track.bounding_boxes[index].x
             y2 = self.second_track.bounding_boxes[index].y
-            sum_pom += (abs(x - x2) + abs(y - y2))**2
+            sum_pom += (1/(index + 1))*((abs(x - x2) + abs(y - y2))**2)
         self.sum = sum_pom / len(self.second_track.bounding_boxes)
+
+
+    def mean_squared_error_alfa_nk(self, k):
+        if len(self.second_track.bounding_boxes) > k:
+            return self.mean_squared_error_alfa_n()
+        sum_pom = 0
+        first_track_last = self.first_track.bounding_boxes[-1]
+        first_track_second_last = self.first_track.bounding_boxes[-2]
+        diff = self.second_track.bounding_boxes[0].frame_index - self.first_track.bounding_boxes[-1].frame_index
+        for index in range(k):
+            # odhadnut bod na indexe
+            x = first_track_last.x + (index + diff) * (first_track_last.x - first_track_second_last.x)
+            y = first_track_last.y + (index + diff) * (first_track_last.y - first_track_second_last.y)
+            # skutocny bod na indexe
+            x2 = self.second_track.bounding_boxes[index].x
+            y2 = self.second_track.bounding_boxes[index].y
+            sum_pom += (1/(index + 1))*((abs(x - x2) + abs(y - y2))**2)
+        self.sum = sum_pom / len(self.second_track.bounding_boxes)
+
 
 
 def get_distance(bb1, bb2):

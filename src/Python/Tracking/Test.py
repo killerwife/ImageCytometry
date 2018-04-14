@@ -1,42 +1,44 @@
 from Tracking import *
-
-b1 = [10,10,1,1]
-b2 = [15,15,1,2]
-b3 = [20,20,1,3]
-
-b4 = [15, 30, 1, 7]
-b5 = [15, 35, 1, 8]
-
-b6 = [27,22,1,6]
-b7 = [31,22,1,7]
-b8 = [35,20,1,8]
-b9 = [38,18,1,9]
-b10 = [43,15,1,10]
-b11 = [45,14,1,11]
-b12 = [49,11,1,12]
-b13 = [53,8,1,13]
-b14 = [55,6,1,14]
+import random
 
 
-b1 = [10,10,1,1]
-b2 = [15,15,1,2]
-b3 = [20,20,1,3]
+def tracks_test(ground_true_tracks, alg_tracks):
+    matched_tracks = []
+    # pre kazdy track z ground truth sa najde track z algoritmu kde ma najvacsi pocet rovnakych bodov
+    for track in ground_true_tracks:
+        max_true = -1
+        max_true_track = None
+        for track2 in alg_tracks:
+            true_bb = 0
+            index = 0
+            for bb1 in track.bounding_boxes:
+                for bb2 in track2.bounding_boxes:
+                    if bb1 == bb2:
+                        true_bb += 1
+            if true_bb > max_true:
+                max_true = true_bb
+                max_true_track = track2
+        matched_tracks.append((track, max_true_track))
 
-b4 = [30, 30, 1, 5]
-b5 = [20, 30, 1, 6]
-
-b6 = [30,25,1,6]
-b7 = [33,22,1,7]
-b8 = [37,19,1,8]
-b9 = [40,17,1,9]
-
-tracks = [[b1,b2,b3],[b4,b5],[b6,b7,b8,b9,b10,b11]]
-#tracks = [[b1,b2,b3],[b4,b5],[b6,b7,b8,b9,b10,b11]]
-un = []
-merge_tracks(tracks, un, 5,50)
-
-# TODO 1 track blizsie, iny smer, 2 track dalej podobny smer
-# 3-4 body
-# 3 testy
-# 45° track
-
+    # porovna dlzku
+    for matched_track in matched_tracks:
+        gt = matched_track[0]
+        alg = matched_track[1]
+        if len(gt.bounding_boxes) == len(alg.bounding_boxes):
+            print('TRUE ground truth track length = alg track length , gt=' + str(len(gt.bounding_boxes)) + ' alg='
+                  + str(len(alg.bounding_boxes)))
+        else:
+            print('FALSE ground truth track length != alg track length , gt=' + str(len(gt.bounding_boxes)) + ' alg='
+                  + str(len(alg.bounding_boxes)))
+        # porovnanie false negatives, body ktore  mali byt v trase ale niesu
+        count = 0
+        for bb1 in gt.bounding_boxes:
+            for bb2 in alg.bounding_boxes:
+                if bb1 == bb2:
+                    count += 1
+        gt_count = len(gt.bounding_boxes)
+        alg_count = len(alg.bounding_boxes)
+        false_negative = gt_count - count
+        false_positive = alg_count - count
+        print('track with id=' + str(gt.id) + ' false positive=' + str(false_positive) + ' false negative=' + str(
+            false_negative))

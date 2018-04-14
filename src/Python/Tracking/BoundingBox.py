@@ -12,7 +12,7 @@ class BoundingBox:
         return "[" + str(self.x) + "," + str(self.y) + "," + str(self.in_track) + "," + str(self.frame_index) + "," + "]"
 
     def __eq__(self, other):
-        if self.x == other.x and self.y == other.y and self.in_track == other.in_track:
+        if self.x == other.x and self.y == other.y and self.in_track == other.in_track and self.frame_index == other.frame_index:
             return True
         return False
 
