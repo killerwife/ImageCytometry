@@ -9,6 +9,7 @@
 #include <opencv2/cudabgsegm.hpp>
 #include "opencv2\cudaobjdetect.hpp"
 #include "opencv2\objdetect.hpp"
+#include <opencv2\features2d.hpp>
 
 #include <ctime>
 #include <chrono>
@@ -110,6 +111,44 @@ void detection(std::string model, std::string file, bool GPU, std::string save =
     }
 }
 
+void processImage(int /*h*/, void*)
+{
+    std::vector<std::vector<cv::Point> > contours;
+    std::string pathInputOriginal = "D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\all";
+    cv::Mat originalInputImage = cv::imread(pathInputOriginal + "\\" + "video2359_0151.tiff", cv::IMREAD_GRAYSCALE);
+    int sliderPos = 70;
+    cv::Mat bimage = originalInputImage >= sliderPos;
+
+    findContours(bimage, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+
+    cv::Mat cimage = cv::Mat::zeros(bimage.size(), CV_8UC3);
+
+    for (size_t i = 0; i < contours.size(); i++)
+    {
+        size_t count = contours[i].size();
+        if (count < 6)
+            continue;
+
+        cv::Mat pointsf;
+        cv::Mat(contours[i]).convertTo(pointsf, CV_32F);
+        cv::RotatedRect box = cv::fitEllipse(pointsf);
+
+        if (MAX(box.size.width, box.size.height) > MIN(box.size.width, box.size.height) * 30)
+            continue;
+        drawContours(cimage, contours, (int)i, cv::Scalar::all(255), 1, 8);
+
+        ellipse(cimage, box, cv::Scalar(0, 0, 255), 1, CV_AA);
+        ellipse(cimage, box.center, box.size*0.5f, box.angle, 0, 360, cv::Scalar(0, 255, 255), 1, CV_AA);
+        cv::Point2f vtx[4];
+        box.points(vtx);
+        for (int j = 0; j < 4; j++)
+            line(cimage, vtx[j], vtx[(j + 1) % 4], cv::Scalar(0, 255, 0), 1, CV_AA);
+    }
+
+    imshow("result", cimage);
+    cv::waitKey(0);
+}
+
 void scripts(int id)
 {
     switch (id)
@@ -190,14 +229,16 @@ void scripts(int id)
         }
         case 5: // canny edge detection
         {
-            std::string pathInput = "D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\all";
+            std::string pathInput = "D:\\BigData\\cellinfluid\\subtractedBackgrounds\\all";
+            std::string pathInputOriginal = "D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\all";
+            cv::Mat originalInputImage = cv::imread(pathInputOriginal + "\\" + "video2359_0151.tiff");
             cv::Mat inputImage = cv::imread(pathInput + "\\" + "video2359_0151.tiff");
             cv::Mat edges;
             int ratio = 3;
             int threshold = 20;
             cv::Canny(inputImage, edges, threshold, threshold * ratio);
-            cv::imshow("Image", inputImage);
-            cv::imshow("Canny", edges);
+            cv::imwrite("originalInputImageCanny.png", originalInputImage);
+            cv::imwrite("cannySubtractedBackground.png", edges);
             cv::waitKey(0);
             break;
         }
@@ -222,6 +263,21 @@ void scripts(int id)
 
             cv::imshow("Image", inputImage);
             cv::waitKey(0);
+        }
+        case 7:
+        {
+            std::string pathInputOriginal = "D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\all";
+            std::string pathInputSubtracted = "D:\\BigData\\cellinfluid\\subtractedBackgrounds\\all";
+            cv::Mat originalInputImage = cv::imread(pathInputOriginal + "\\" + "video2359_0151.tiff");
+            cv::Mat subtractedInputImage = cv::imread(pathInputSubtracted + "\\" + "video2359_0151.tiff");
+            cv::Ptr<cv::MSER> blobsDetector = cv::MSER::create();
+            std::vector<cv::KeyPoint> keypoints;
+            blobsDetector->detect(subtractedInputImage, keypoints);
+            for (size_t i = 0; i < keypoints.size(); ++i)
+                circle(originalInputImage, keypoints[i].pt, 4, cv::Scalar(255, 0, 255), -1);
+            cv::imwrite("FeatureDetectorSubtractedMSER.png", originalInputImage);
+            cv::waitKey(0);
+            break;
         }
     }
 }
@@ -512,7 +568,8 @@ void cascadePerformance(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-    scripts(6);
+    scripts(7);
+    //processImage(1,nullptr);
     //cascadePerformance(argc, argv);
 
     return 0;
