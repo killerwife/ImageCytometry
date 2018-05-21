@@ -7,7 +7,7 @@ from imutils import contours
 
 import Detection_by_tracking
 
-#	------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def run(path_source_folder, image_name_pattern, radius_of_circle, file_name_of_XML, frame_from, frame_to):
     print("-------------------------------------------------------------------------------")
@@ -31,7 +31,7 @@ def run(path_source_folder, image_name_pattern, radius_of_circle, file_name_of_X
     print("-------------------------------------------------------------------------------")
 
 
-#	------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 def RBC_detection_circle(path_source_folder, image_name_pattern, radius_of_object, file_name_of_XML, frame_from,
                          frame_to, detection):
     list_of_frames = []
@@ -71,7 +71,7 @@ def RBC_detection_circle(path_source_folder, image_name_pattern, radius_of_objec
 
     _particles_to_XML(list_of_frames, file_name_of_XML)
 
-#	------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def RBC_detection_ellipse(path_source_folder, image_name_pattern, radius_of_object, file_name_of_XML, frame_from,
                           frame_to, stepRotation):
@@ -103,7 +103,7 @@ def RBC_detection_ellipse(path_source_folder, image_name_pattern, radius_of_obje
 
     _particles_to_XML(list_of_frames, file_name_of_XML)
 
-#	------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def _detect_peaks(gray_image, frame_from, image_name_pattern):
     list_of_coordinates = set()
@@ -168,7 +168,7 @@ def merge_points(list_of_coordinates, penalty_size):
 
     return list_of_coordinates
 
-#	------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def _hough_transform_circle(gray_image, radius_of_object):
     height, width = gray_image.shape
@@ -186,7 +186,7 @@ def _hough_transform_circle(gray_image, radius_of_object):
     return parameter_space
 
 
-#	------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def _hough_transform_ellipse(gray_image, radius_of_object, angle):
     height, width = gray_image.shape
@@ -205,7 +205,7 @@ def _hough_transform_ellipse(gray_image, radius_of_object, angle):
     return parameter_space
 
 
-#	------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def _cany_edge_detection(gray_image):
     median = np.median(gray_image)
@@ -213,16 +213,19 @@ def _cany_edge_detection(gray_image):
 
     return edges
 
-#	------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def _background_subtraction(gray_image, background_image):
-    gray_image = gray_image - background_image
+    background_image_16 = background_image.astype(np.int16)
+    gray_image_16 = gray_image_16 - background_image_16
+    gray_image_16 = np.absolute(gray_image_16)
+    gray_image = gray_image_16.astype(np.uint8)
     cv2.normalize(gray_image, gray_image, 0, 255, cv2.NORM_MINMAX)
 
     return gray_image
 
 
-#	------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def _get_background(path_source_folder, image_name_pattern, frame_from, frame_to):
     src_image = cv2.imread(path_source_folder + "/" + image_name_pattern % frame_from, 0)
@@ -241,7 +244,29 @@ def _get_background(path_source_folder, image_name_pattern, frame_from, frame_to
     return background_image
 
 
-#	------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+
+def get_backgroundFromVideo(video_path):
+    cap = cv2.VideoCapture(video_path)
+    background_image = []
+    n_frames = 0
+    while cap.isOpened():
+        ret, frame = cap.read()
+
+        if ret:
+            if n_frames == 0:
+                background_image = np.float32(frame)
+            n_frames += 1
+            cv2.accumulateWeighted(frame, background_image, 1 / n_frames)
+        else:
+            break
+
+    cv2.imwrite("C:\\GitHubCode\\ImageCytometry\\src\\Python\\Detection\\background.png", background_image)
+
+    return background_image
+
+
+# ------------------------------------------------------------------------------
 
 def _draw_circle(picture, coordinate_X, coordinate_Y, radius, increment):
     a = radius
@@ -329,7 +354,7 @@ def _particles_to_XML(list_of_frames, file_name_of_XML):
     tree = ET.ElementTree(XML_root)
     tree.write(file_name_of_XML)
 
-#	------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def _print_progress_bar(iteration, total, prefix="", suffix="", decimals=1, length=100, fill="█"):
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
@@ -376,7 +401,7 @@ def renameFiles(path_source_folder, path_destination_folder, image_name_pattern,
 
 # ------------------------------------------------------------------------------
 
-run("SourceImages", "frame_%d.jpg", 12, "export.xml", 1, 120)
+#run("SourceImages", "frame_%d.jpg", 12, "export.xml", 1, 120)
 # "SourceImages" - (path) source folder
 # "frame_%d.jpg" - (image) name pattern
 # 12 - radius of circle
