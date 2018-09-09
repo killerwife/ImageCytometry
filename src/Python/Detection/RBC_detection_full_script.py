@@ -216,10 +216,37 @@ def _cany_edge_detection(gray_image):
 # ------------------------------------------------------------------------------
 
 def _background_subtraction(gray_image, background_image):
+    # placeholder = np.full_like(gray_image, 0, np.int16)
+    # placeholder += gray_image
+    h = gray_image.shape[0]
+    w = gray_image.shape[1]
+    gray_image_16 = gray_image.astype(np.int16)
+    # for y in range(0, h):
+    #     for x in range(0, w):
+    #         if gray_image[y, x] <= background_image[y, x]:
+    #             gray_image[y, x] = 255 + (gray_image[y, x] - background_image[y, x])
+    #         else:
+    #             gray_image[y, x] = 0
     background_image_16 = background_image.astype(np.int16)
     gray_image_16 = gray_image_16 - background_image_16
+    # # grayFile = open('outputGrayAlgo.txt', "w")
+    # np.savetxt(grayFile, gray_image_16)
     gray_image_16 = np.absolute(gray_image_16)
     gray_image = gray_image_16.astype(np.uint8)
+    # gray_image = gray_image - background_image
+
+    # for y in range(0, h):
+    #     for x in range(0, w):
+    #         if gray_image[y, x] < 0:
+    #             gray_image[y, x] = 0
+    #
+    # outputType = np.full_like(gray_image, 0, np.uint8)
+    # for y in range(0, h):
+    #     for x in range(0, w):
+    #         outputType[y, x] = gray_image[y, x]
+
+    # print(outputType.dtype)
+    # cv2.threshold(gray_image, 0, 512, cv2.THRESH_TOZERO)
     cv2.normalize(gray_image, gray_image, 0, 255, cv2.NORM_MINMAX)
 
     return gray_image
