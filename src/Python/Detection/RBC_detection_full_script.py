@@ -251,6 +251,11 @@ def _background_subtraction(gray_image, background_image):
 
     return gray_image
 
+def _background_subtraction2(gray_image, background_image):
+    cv2.normalize(gray_image, gray_image, 0, 255, cv2.NORM_MINMAX)
+
+    return gray_image
+
 
 # ------------------------------------------------------------------------------
 
@@ -266,7 +271,7 @@ def _get_background(path_source_folder, image_name_pattern, frame_from, frame_to
         n_frames += 1
         cv2.accumulateWeighted(src_image, background_image, 1 / n_frames)
 
-    cv2.imwrite("BGSubtraction/background.jpg", background_image)
+    cv2.imwrite("background.png", background_image)
 
     return background_image
 
