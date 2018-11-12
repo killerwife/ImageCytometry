@@ -5,11 +5,20 @@ import cv2
 import numpy as np
 import random
 import datetime, os
-import sys
 import Test
 
 
-def merge_tracks(track_array, unresolved_points, difference, radius=50):
+def merge_tracks(track_array, unresolved_points, frame_difference, radius=50):
+    """
+    Hlavna funkcia ktora sluzi na mergovanie tras. Na zaciatku sa prerobia trasy z maticneho tvaru na objekty.
+    Nasledne sa najdu kandidati na spojenie podla parametra difference a radius. Potom sa trasy spoja na zaklade
+    tokovej matice alebo vypoctu mean squared error.
+    :param track_array: pole tras vo formate matice bodov kde kazdy bod je definovany [x, y, zaradeny, frame]
+    :param unresolved_points: pole nezaradenych bodov
+    :param frame_difference: maximalny pocet bynechanych framov
+    :param radius: maximalne okolie ktore sa prehladava
+    :return: pole pospajanych tras vo formate matice
+    """
     tracks = create_tracks(track_array)
     print_info(tracks)
     before = []
@@ -19,53 +28,46 @@ def merge_tracks(track_array, unresolved_points, difference, radius=50):
     # loop all tracks
     array_for_join = []
     array_for_join_points = []
+
     for track in tracks:
         # for all 1 to frame difference add point and check tracks for merge
         tracks_in_radius = []
         points_in_radius = []
-        #print('track=' + str(track))
-        for index in range(difference):
-            #porovnaju sa body
-            new_x = (2 + index) * track.bounding_boxes[-1].x - (index + 1) * track.bounding_boxes[-2].x
-            new_y = (2 + index) * track.bounding_boxes[-1].y - (index + 1) * track.bounding_boxes[-2].y
-            #print(str(new_x) + ' , ' + str(new_y))
-            frame_index = track.bounding_boxes[-1].frame_index + (index + 1)  # start from 0
-            new_bb = BoundingBox(new_x, new_y, 1, frame_index, 0, 0)
-            # check tracks for merge
-            for track_for_merge in tracks:
-                if track_for_merge.bounding_boxes[0].frame_index == 15:
-                    c = 4
-                if track != track_for_merge:
-                    # compare last point from first track with first point in second track
-                    track2_first_p = track_for_merge.bounding_boxes[0]
-                    if is_in_radius(new_bb, track2_first_p, radius) and new_bb.frame_index == track2_first_p.frame_index:
-                        tracks_in_radius.append(Track(None,track_for_merge))
-            # check unresolved points for merge
-            for point in unresolved_points:
-                if is_in_radius(new_bb, point, radius) and new_bb.frame_index == point.frame_index:
-                    points_in_radius.append(point)
+
+        # check tracks for merge
+        for track_for_merge in tracks:
+            if track != track_for_merge:
+                # compare last point from first track with first point in second track
+                track2_first_bb = track_for_merge.bounding_boxes[0]
+                track1_last_bb = track.bounding_boxes[-1]
+                if is_in_radius(track1_last_bb, track2_first_bb, radius) \
+                        and track1_last_bb < track2_first_bb <= track1_last_bb + frame_difference:
+                    tracks_in_radius.append(Track(None, track_for_merge))
+
         # add array of all tracks which can be joined to track
         array_for_join.append(tracks_in_radius)
         # add array of all points which can be joined to track
         array_for_join_points.append(points_in_radius)
 
-    '''before = []
-    for track_index in range(len(tracks)):
-        if tracks[track_index].id == 39:
-            before.append(Track(None,tracks[track_index]))
-        for merge_index in range(len(array_for_join[track_index])):
-            if tracks[track_index].id == 39:
-                before.append(Track(None,array_for_join[track_index][merge_index]))'''
-
-    merged = join_tracks_2(tracks, array_for_join, True, False, False)
+    merged = join_tracks_min_error(tracks, array_for_join, True, False)
     print_info(merged)
-    #merged = get_longest_track(merged)
 
     print_track2(merged, before)
     merged = track_object_to_matrix(merged)
     return merged
 
-def merge_tracks_flow_matrix(track_array, flow_matrix, difference, radius = 50):
+
+def merge_tracks_flow_matrix(track_array, flow_matrix, frame_difference, radius=50):
+    """
+    Spojenie tras na zaklade tokovej matice. Na zaciatku sa najdu kandidati na spojenie podla parametra difference.
+    Nasledne podla tokovej matice sa vypocita cesta z bodu [X1,Y1] na frame Z1 do bodu [X2,Y2] na frame Z2 tak, ze ku bodu X1,Y1 sa pripocita hodnota vektoru na tomto bode. Operacia sa opakuje
+    (Z2 - Z1) krat.
+    :param track_array: pole tras vo formate matice bodov kde kazdy bod je definovany [x, y, zaradeny, frame]
+    :param flow_matrix: tokova matica
+    :param frame_difference: maximalny rozdiel framov
+    :param radius: maximalny radius
+    :return: maticu spojenych tras
+    """
     tracks = create_tracks(track_array)
     print_info(tracks)
     before = []
@@ -73,24 +75,24 @@ def merge_tracks_flow_matrix(track_array, flow_matrix, difference, radius = 50):
         before.append(Track(None, track))
     # loop all tracks
     array_for_join = []
+
     for track in tracks:
-        # for all 1 to frame difference add point and check tracks for merge
-        tracks_in_radius = []
-        for index in range(difference):
-            # porovnaju sa body
-            frame_index = track.bounding_boxes[-1].frame_index + (index + 1)
-            # check tracks for merge
-            for track_for_merge in tracks:
-                if track != track_for_merge:
-                    # compare last point from first track with first point in second track
-                    track2_first_p = track_for_merge.bounding_boxes[0]
-                    if frame_index == track2_first_p.frame_index:
-                        tracks_in_radius.append(track_for_merge)
-        # add array of all tracks which can be joined to track
-        array_for_join.append(tracks_in_radius)
-    new_tracks = join_tracks_flow_matrix(tracks,array_for_join,flow_matrix, radius)
+        tracks_in_frame_range = []
+        # check tracks for merge
+        for track_for_merge in tracks:
+            if track != track_for_merge:
+                # compare last point from first track with first point in second track
+                track2_first_bb = track_for_merge.bounding_boxes[0].frame_index
+                track1_last_bb = track.bounding_boxes[-1].frame_index
+                if track1_last_bb < track2_first_bb <= track1_last_bb + frame_difference:
+                    tracks_in_frame_range.append(track_for_merge)
+                    # add array of all tracks which can be joined to track
+
+        array_for_join.append(tracks_in_frame_range)
+
+    new_tracks = join_tracks_flow_matrix(tracks, array_for_join, flow_matrix, radius)
     print_info(new_tracks)
-    #new_tracks = get_longest_track(new_tracks)
+
     print_track2(new_tracks, before)
     new_tracks = track_object_to_matrix(new_tracks)
     '''print('----')
@@ -103,7 +105,22 @@ def merge_tracks_flow_matrix(track_array, flow_matrix, difference, radius = 50):
     print('-----')'''
     return new_tracks
 
-def join_tracks_flow_matrix(tracks, tracks_for_merge, flow_matrix,max_radius):
+
+def join_tracks_flow_matrix(tracks, tracks_for_merge, flow_matrix, max_radius):
+    """
+    Funkcia spaja trasy podla tokovej matice. Pre kazdu trasu a jej kandidata vypocita vzdialenost podla tokovej matice.
+    Ak je vzdialenost mensia ako paramater radius, prida sa do pola na spajanie spolu s informaciou o vzdialenosti.
+    Nasledne sa toto pole utriedi podla vzdialenosti od najmensej a spoja sa trasy. Trasy ktore sa spoja su z pola zmazane
+    podla nasledovnych pravidiel. Nech A je povodna trasa a B je jeho kandidat na spojenie.
+    1. Zmazat vsetky prvky pola kde kandidat na spojenie je trasa B.
+    2. Zmazat vsetky prvky pola kde povodna trasa je trasa A.
+    3. Najst vsetky prvky pola kde kandidat na spojenie je trasa A a nahradit ho novou trasou AB.
+    :param tracks: pole tras
+    :param tracks_for_merge: pole kandidatov pre kazdu trasu z pola tracks
+    :param flow_matrix: tokova matica
+    :param max_radius: maximalna vzdialenost
+    :return:
+    """
     x_max = len(flow_matrix)
     y_max = len(flow_matrix[0])
     print('x max=' + str(x_max))
@@ -111,18 +128,16 @@ def join_tracks_flow_matrix(tracks, tracks_for_merge, flow_matrix,max_radius):
 
     merge_tracks_array = []
     for track_index in range(len(tracks)):
-        if tracks[track_index].id == 213:
-            print('error')
-        best_ind = -1
-        best_val = sys.maxsize
-        # cislo poslednej bunky v tracku
+        # cislo framu poslednej bunky v trase1
         frame = tracks[track_index].bounding_boxes[-1].frame_index
+        # pre kazdeho kandidata vypocitat vzdialenost podla tokovej matice
         for merge_index in range(len(tracks_for_merge[track_index])):
             x = tracks[track_index].bounding_boxes[-1].x
             y = tracks[track_index].bounding_boxes[-1].y
-            #prva bunka v trase
+            # prva bunka v trase ktora je kandidat na spojenie ku trase1
             second_track_frame_index = tracks_for_merge[track_index][merge_index].bounding_boxes[0].frame_index
-            frame_diff =  second_track_frame_index - frame
+            frame_diff = second_track_frame_index - frame
+            # vypocitat na akej pozicii sa bude nachadzat bod podla tokovej matice
             for index in range(frame_diff):
                 # pripocitat hodnotu podla tokovej matice
                 x_int = int(x)
@@ -132,49 +147,50 @@ def join_tracks_flow_matrix(tracks, tracks_for_merge, flow_matrix,max_radius):
                     y_temp = flow_matrix[x_int][y_int][1][1]
                     angle_radiant = get_vector_angle(x_temp, y_temp)
                     x, y = get_position(x, y, angle_radiant, tracks[track_index].speed)
+                    #print('x=' + str(x_int) + ' y=' + str(y_int))
+                    #x += flow_matrix[x_int][y_int][1][0]
+                    #y += flow_matrix[x_int][y_int][1][1]
             first_x = tracks_for_merge[track_index][merge_index].bounding_boxes[0].x
             first_y = tracks_for_merge[track_index][merge_index].bounding_boxes[0].y
-            distance = get_distance2([first_x, first_y],[x,y])
+            distance = get_distance_array([first_x, first_y], [x, y])
             if distance < max_radius:
-                new_merge_track = MergeTracks(Track(None,tracks[track_index]),Track(None,tracks_for_merge[track_index][merge_index]))
+                new_merge_track = MergeTracks(Track(None, tracks[track_index]), Track(None, tracks_for_merge[track_index][merge_index]))
                 new_merge_track.distance = distance
                 merge_tracks_array.append(new_merge_track)
-            '''if distance < best_val and distance < max_radius:
-                best_ind = merge_index
-                best_val = distance
-        if best_ind != -1:
-            print('merge')
-            track = tracks_for_merge[track_index][best_ind]
-            copy = Track(None, track)
-            tracks[track_index].merge_tracks(tracks_for_merge[track_index][best_ind])
-            new_tracks.append(tracks[track_index])
-            for t1 in range(len(tracks)):
-                if copy in tracks_for_merge[t1]:
-                    tracks_for_merge[t1].remove(copy)'''
-    merge_tracks_array.sort(key=lambda merge_track : merge_track.distance)
+
+    merge_tracks_array.sort(key=lambda merge_track: merge_track.distance)
     final_array = []
+    # postupne pospajat trasy
     while len(merge_tracks_array) > 0:
         first = merge_tracks_array[0].first_track
         first_copy = Track(None, first)
         second = merge_tracks_array[0].second_track
+        #todo del
         if first in tracks:
             tracks.remove(first)
         if second in tracks:
             tracks.remove(second)
         first.merge_tracks(second)
+        # pridat spojenu trasu do vysledneho pola
         final_array.append(first)
+        # zmazat spojenu trasu
         del merge_tracks_array[0]
         copy = merge_tracks_array.copy()
+        # pole indexov na zmazanie
         index_for_del = []
+        # TODO kuknut sa nato, asi to nefunguje spravne
         for index in range(len(copy)):
+            # ak je trasa 1 rovnaka ako spojena trasa zmaze sa
             if copy[index].first_track == first:
                 index_for_del.append(index)
+            # ak je trasa 2 rovnaka ako spojena trasa zmaze sa
             if copy[index].second_track == first:
                 index_for_del.append(index)
             if copy[index].first_track == first_copy:
                 index_for_del.append(index)
             if copy[index].second_track == first_copy:
-                index_for_del.append(index)
+                #index_for_del.append(index)
+                merge_tracks_array[index].second_track = first
             if copy[index].first_track == second:
                 merge_tracks_array[index].first_track = first
             if copy[index].second_track == second:
@@ -193,28 +209,34 @@ def join_tracks_flow_matrix(tracks, tracks_for_merge, flow_matrix,max_radius):
 
     return no_duplicate_array
 
-def join_tracks_2(tracks, tracks_for_merge, method1 = True, method2 = False, method3 = False):
+
+def join_tracks_min_error(tracks, tracks_for_merge, method1=True, method2=False):
+    """
+    Spoji trasy na zaklade najmensej chyby spojenia. Chyba spojenia sa pocita 3 funkciami.
+    :param tracks: pole tras
+    :param tracks_for_merge: pole kandidatov pre kazdu trasu
+    :param method1: ak je True pouzije sa funkcia mean squared error z N poslednych bodov
+    :param method2: ak je True pouzije sa funkcia mean squared error alfa n
+    :return: spojene trasy
+    """
     merge_tracks_array = []
     # create list with merge tracks
     for track_index in range(len(tracks)):
         for merge_index in range(len(tracks_for_merge[track_index])):
-            if tracks[track_index].id == 39 or tracks_for_merge[track_index][merge_index].id == 39:
-                a = 0
-            merge = MergeTracks(Track(None,tracks[track_index]), Track(None,tracks_for_merge[track_index][merge_index]))
+            merge = MergeTracks(Track(None, tracks[track_index]), Track(None, tracks_for_merge[track_index][merge_index]))
             if method1:
-                #merge.mean_squared_error()
                 merge.mean_squared_error_n_last(8)
             elif method2:
                 merge.mean_squared_error_alfa_n()
-            elif method3:
-                merge.mean_squared_error_alfa_nk(5)
             merge_tracks_array.append(merge)
-    # print(merge_tracks_array)
+
+    # zoradit pole podla chyby spojenia
     merge_tracks_array.sort(key=lambda merge_track : merge_track.sum)
     string = ''
     for tr in merge_tracks_array:
         string += str(tr.sum) + ','
     print(string)
+
     final_array = []
     while len(merge_tracks_array) > 0:
         first = merge_tracks_array[0].first_track
@@ -257,48 +279,29 @@ def join_tracks_2(tracks, tracks_for_merge, method1 = True, method2 = False, met
     return no_duplicate_array
 
 
-def join_tracks(tracks, tracks_for_merge):
-    print("start join")
-    for index1 in range(len(tracks)):
-        tracks[index1].compute_speed()
-        #tracks[index1].compute_direction()
-        tracks[index1].compute_avg_vector()
-        tracks[index1].angle = angle(tracks[index1].vector)
-
-    for index1 in range(len(tracks)):
-        track_angle = tracks[index1].angle
-        minimum_index = -1
-        minimum = 10000000
-        for index2 in range(len(tracks_for_merge[index1])):
-            diff = abs(track_angle - tracks_for_merge[index1][index2].angle)
-            if diff < minimum:
-                minimum = diff
-                minimum_index = index2
-        # merge tracks
-        if minimum_index != -1:
-            tracks[index1].merge_tracks(tracks_for_merge[index1][minimum_index])
-            # delete track
-            track_for_delete = tracks_for_merge[index1][minimum_index]
-            for del_index1 in range(len(tracks_for_merge)):
-                for del_index2 in range(len(tracks_for_merge[del_index1])):
-                    if track_for_delete == tracks_for_merge[del_index1][del_index2]:
-                        del tracks_for_merge[del_index1][del_index2]
-    return tracks,tracks_for_merge
-
 def create_tracks(track_array):
+    """
+    Prerobi maticu tras na maticu objektov Track.
+    :param track_array: pole tras
+    :return: pole objektov
+    """
     tracks = []
-    id = 1
+    track_id = 1
     for track in track_array:
         t = Track(track)
-        t.id = id
+        t.id = track_id
         t.compute_speed()
-        #print('track id=' + str(t.id) + ' speed=' + str(t.speed))
-        id += 1
+        track_id += 1
         tracks.append(t)
     return tracks
 
 
 def create_bounding_boxes(bb_array):
+    """
+    Prerobi maticu nezaradenych bodov na maticu objektov BoundingBox.
+    :param bb_array: pole tras
+    :return: pole objektov
+    """
     if bb_array is None:
         return None
     bounding_boxes = []
@@ -308,14 +311,27 @@ def create_bounding_boxes(bb_array):
 
 
 def is_in_radius(bb1, bb2, radius):
-    return get_distance(bb1, bb2) <= radius
+    return get_distance_object(bb1, bb2) <= radius
 
 
-def get_distance(bb1, bb2):
+def get_distance_object(bb1, bb2):
+    """
+    Vrati vzdialenost medzi dvoma objektami BoundingBox.
+    :param bb1: bounding box a
+    :param bb2: bounding box b
+    :return: vzdialenost
+    """
     distance = math.sqrt((bb1.x - bb2.x)**2 + (bb1.y - bb2.y)**2)
     return distance
 
-def get_distance2(a, b):
+
+def get_distance_array(a, b):
+    """
+    Vrati vzdialenost medzi dvoma bodmi, kde bod je pole [X, Y]
+    :param a: bod a
+    :param b: bod b
+    :return: vzdialenost
+    """
     return math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
 
 
@@ -423,14 +439,27 @@ def print_track(tracks, merging, merge_point, merged, before, method, seed,file,
 
 
 def get_vector_angle(x, y):
+    """
+    Vypocita uhol vectoru.
+    :param x: bod x
+    :param y: bod y
+    :return: uhol
+    """
     vect = math.atan2(y, x)
     return vect
 
-'''
-X=distance*cos(angle) +x0
-Y=distance*sin(angle) +y0
-'''
+
 def get_position(x, y, angle, speed):
+    """
+    Vypocita poziciu bodu podla uhlu a rychlosti.
+    X=distance*cos(angle) + x0
+    Y=distance*sin(angle) + y0
+    :param x: povodna x-ova pozicia
+    :param y: povodna y-ova pozicia
+    :param angle: uhol
+    :param speed: rychlost
+    :return: novu poziciu [x, y]
+    """
     x_new = x + math.cos(angle)*speed
     y_new = y + math.cos(angle)*speed
     print('old x=' + str(x) + ' old y=' + str(y) + ' speed=' + str(speed) + ' angle=' + str(angle) + ' n x=' + str(x_new) + ' y new=' + str(y_new))
@@ -462,10 +491,9 @@ def angle(v1):
     #v2_alfa = math.atan(tan_v2_alfa)
     return v1_alfa
 
+
 def get_longest_track(tracks):
-    '''max = -1
-    max_index = -1
-    t = -1'''
+    # TODO pomocna funkcia na testovanie
     new_array = []
 
     for track_index in range(len(tracks)):
@@ -475,7 +503,7 @@ def get_longest_track(tracks):
         for index in range(len(tracks[track_index].bounding_boxes) - 1):
             track1 = tracks[track_index].bounding_boxes[index]
             track2 = tracks[track_index].bounding_boxes[index + 1]
-            distance = get_distance(track1, track2)
+            distance = get_distance_object(track1, track2)
             if distance > max:
                 max = distance
                 max_index = index
@@ -498,6 +526,11 @@ def get_longest_track(tracks):
 
 
 def track_object_to_matrix(tracks):
+    """
+    Funkcia prerobi pole objektov Track na pole trackov.
+    :param tracks: pole objektov Track
+    :return: pole tras
+    """
     new_tracks = []
     for track in tracks:
         new_track = []
@@ -507,6 +540,7 @@ def track_object_to_matrix(tracks):
         new_tracks.append(new_track)
 
     return new_tracks
+
 
 def test_tracks(gt_tracks, alg_tracks):
     gt_tracks2 = create_tracks(gt_tracks)

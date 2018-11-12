@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import math
 import random
-import Tracking
+import Tracking, FlowMatrix
 
 
 def parse_xml(file):
@@ -1185,7 +1185,7 @@ else:
 # zmaze niektore bunky z anastroja - z matice mat !!!!!!!!!!!!!!
 #mat = remove_one_cell_from_all_frame(mat)
 #mat = remove_one_cell_from_all_frame(mat)
-mat = remove_some_cell_random(mat, 50)
+#mat = remove_some_cell_random(mat, 50)
 
 if (str(len(tracks) == '0')):
     print('-----------------------------------------------------------------------------------------------')
@@ -1207,6 +1207,10 @@ print('-------------------------------------------------------------------------
 # join_dist = input('Parameter (dist) for joining tracks: [12]')
 join_dist = '12'
 join = True
+
+#Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 10, 12)
+
+
 
 while(join):
 
@@ -1250,7 +1254,7 @@ while resolve:
   else:
       resolve = False'''
 
-
+print('calculating flow matrix')
 print('-----------------------------------------------------------------------------------------------')
 # file_xml = input('File name for export: ')
 file_xml = "some_file.xml"
@@ -1258,12 +1262,15 @@ generate_tracks_xml_real(merged_tracks,file_xml,frame_rate, pixel_size)
 print('-----------------------------------------------------------------------------------------------')
 
 # --- ***
-show = 'y'
-save = input('1 Would you like to save as anastroj file?')
+# save = input('1 Would you like to save as anastroj file?')
+save = 'n'
 if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
     file_name = input('1 File name for anastroj export: ')
     save_as_anastroj_file(tracks, src_names, file_name)
 
+show = 'y'
+FlowMatrix.calculate_flow_matrix(flow_matrix)
+merged_tracks = Tracking.merge_tracks_flow_matrix(merged_tracks, flow_matrix, 5,20)
 if (show == 'y' or show == 'yes' or show == 'Y' or show == 'YES'):
     name = input('1 File name for img:')
     img_tracks = np.zeros((int(y), int(x), 3), np.uint8)
@@ -1278,21 +1285,4 @@ if (show == 'y' or show == 'yes' or show == 'Y' or show == 'YES'):
 
 # show = input('Would you like to show and save img of final tracks?')
 show = 'y'
-Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 10, 12)
 
-save = input('Would you like to save as anastroj file?')
-#save = 'y'
-if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
-    file_name = input('File name for anastroj export: ')
-    save_as_anastroj_file(tracks, src_names, file_name)
-
-if (show == 'y' or show == 'yes' or show == 'Y' or show == 'YES'):
-    name = input('File name for img:')
-    img_tracks = np.zeros((int(y), int(x), 3), np.uint8)
-    img = draw_tracks(merged_tracks, img_tracks)
-
-    cv2.imwrite('img\/'+name+'.png', img)
-    cv2.imshow('Final tracks from tracking', img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-print('-----------------------------------------------------------------------------------------------')

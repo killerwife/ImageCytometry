@@ -20,4 +20,3 @@ class BoundingBox:
         if self == other:
             return False
         return True
-

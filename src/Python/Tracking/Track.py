@@ -3,10 +3,12 @@ import math
 import cv2
 import numpy as np
 
+
 class Track:
     def __init__(self, bounding_boxes, track=None):
         self.speed = 0
         self.id = -1
+        self.ground_truth = None
         if track is not None:
             self.bounding_boxes = []
             self.id = track.id
@@ -19,6 +21,13 @@ class Track:
         self.angle = 0
         self.vector = (0, 0)
         self.speed = 0
+
+        # pocet bodov ktore su v trase ale nemali by tam byt
+        self.false_positive = 0
+        # pocet bodov ktore su v trase a mali tam byt
+        self.true_positive = 0
+        # pocet bodov ktore niesu v trase ale mali tam byt
+        self.false_negative = 0
 
     def add_point_to_end(self, bounding_box):
         self.bounding_boxes.append(bounding_box)
@@ -55,6 +64,40 @@ class Track:
 
         self.speed = total_distance / count
 
+
+    def testing(self):
+        # pocet bodov ktore su v trase ale nemali by tam byt
+        self.false_positive = 0
+        # pocet bodov ktore su v trase a mali tam byt
+        self.true_positive = 0
+        # pocet bodov ktore niesu v trase ale mali tam byt
+        self.false_negative = 0
+        self.find_true_positive()
+        self.find_false_positive()
+        self.find_false_negative()
+        # precision = kolko  najdenych bodov je gt
+        pom = (self.true_positive + self.false_positive)
+        if pom != 0:
+            self.precision = self.true_positive / pom
+        # recall = kolko bodov v trase je najdenych
+        self.recall = self.true_positive / len(self.ground_truth.bounding_boxes)
+
+
+    def find_true_positive(self):
+        # TODO optimize loop
+        if self.ground_truth is not None:
+            for bb_gt in self.ground_truth.bounding_boxes:
+                for bb_alg in self.bounding_boxes:
+                    if bb_gt == bb_alg:
+                        self.true_positive += 1
+                        break
+
+    def find_false_negative(self):
+        self.false_negative = len(self.ground_truth.bounding_boxes) - self.true_positive
+
+
+    def find_false_positive(self):
+        self.false_positive = len(self.bounding_boxes) - self.true_positive
 
 
     def haveBB(self, array):
@@ -167,6 +210,23 @@ class MergeTracks:
         self.sum = sum_pom / len(self.second_track.bounding_boxes)
 
 
-
 def get_distance(bb1, bb2):
     return math.sqrt((bb1.x - bb2.x) ** 2 + (bb1.y - bb2.y) ** 2)
+
+
+def create_tracks(track_array):
+    """
+    Prerobi maticu tras na maticu objektov Track.
+    :param track_array: pole tras
+    :return: pole objektov
+    """
+    tracks = []
+    track_id = 1
+    for track in track_array:
+        t = Track(track)
+        t.id = track_id
+        t.compute_speed()
+        track_id += 1
+        if len(t.bounding_boxes) > 0:
+            tracks.append(t)
+    return tracks
