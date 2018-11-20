@@ -75,6 +75,15 @@ def tracks_test(ground_true_tracks, alg_tracks):
 
 
 def complete_tracks(tracks_gt, tracks_alg):
+    count_completed_tracks = 0
+    """for track_gt in tracks_gt:
+        track_id_alg = 0
+        for index_gt in range(len(track_gt.bounding_boxes)):
+            for track_alg_index in range(len(tracks_alg)):
+                count_cell_alg = 0
+                track_id_alg = track_alg_index
+                for index_alg in range(len(track_alg_index.bounding_boxes)): ## ???
+                    #if ()"""
     pass
 
 # uhadnute segmenty
@@ -134,4 +143,5 @@ def bad_segments_area(tracks_alg, tracks_gt):
     pass
 
 #load_tracks("C:\\Users\\Miroslav Buzgo\\Desktop\\tracks_1_200.xml", "C:\\Users\\Miroslav Buzgo\\Desktop\\tracks_1_200.xml")
-load_tracks("C:\\Users\\Miroslav Buzgo\\Desktop\\xml1_1.xml", "C:\\Users\\Miroslav Buzgo\\Desktop\\xml1_2.xml")
+#load_tracks("C:\\Users\\Miroslav Buzgo\\Desktop\\xml1_1.xml", "C:\\Users\\Miroslav Buzgo\\Desktop\\xml1_2.xml")
+load_tracks("C:\\Users\\Janka\\Desktop\\xml1_1.xml", "C:\\Users\\Janka\\Desktop\\xml1_2.xml")
