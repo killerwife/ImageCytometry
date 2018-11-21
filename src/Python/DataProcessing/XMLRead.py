@@ -71,12 +71,61 @@ def readXML(fileName, imageData):
         imageData.append(image)
 
 
-fileNameFirst = '../../XML/track_1_49_151_200.xml'
-fileNameSecond = '../../XML/trasy_51_150_xml2.xml'
+fileNameFirst = '../../XML/track_1_51_151_200.xml'
+fileNameSecond = '../../XML/trasy_51_151_xml2.xml'
 fileNameOutput = '../../XML/tracks_1_200.xml'
-imageData = []
-readXML(fileNameFirst, imageData)
-readXML(fileNameSecond, imageData)
+imageDataFirst = []
+imageDataSecond = []
+readXML(fileNameFirst, imageDataFirst)
+readXML(fileNameSecond, imageDataSecond)
+
+def replaceTrackIds(trackPairs, imageData):
+    for image in imageData:
+        for boundingBox in image.boundingBoxes:
+            resultingTrackId = trackPairs.get(boundingBox.trackId)
+            if resultingTrackId is not None and resultingTrackId != -1:
+                boundingBox.trackId = trackPairs.get(boundingBox.trackId)
+
+def connectTracks(imageDataFirst, imageDataSecond):
+    jointImages = []
+    for imageOne in imageDataFirst:
+        for imageTwo in imageDataSecond:
+            if imageOne.filename == imageTwo.filename:
+                if imageOne.boundingBoxes[0].trackId == -1 and imageTwo.boundingBoxes[0].trackId == -1:
+                    jointImages.append(imageTwo)  # if no tracks in either, eliminate any one of them
+                    break
+                if imageOne.boundingBoxes[0].trackId == -1:
+                    jointImages.append(imageOne)
+                    break
+                elif imageTwo.boundingBoxes[0].trackId == -1:
+                    jointImages.append(imageTwo)
+                    break
+                trackList = {}
+                trackListReverse = {}
+                for boundingBoxOne in imageOne.boundingBoxes:
+                    for boundingBoxTwo in imageTwo.boundingBoxes:
+                        if boundingBoxOne.x == boundingBoxTwo.x and boundingBoxOne.y == boundingBoxTwo.y and \
+                               boundingBoxOne.width == boundingBoxTwo.width and boundingBoxOne.height == boundingBoxTwo.height:
+                            trackList[boundingBoxTwo.trackId] = boundingBoxOne.trackId
+                            trackListReverse[boundingBoxOne.trackId] = boundingBoxTwo.trackId
+                            break
+                if int(imageOne.filename[-9:-5]) == 51:
+                    replaceTrackIds(trackList, imageDataSecond)
+                else:
+                    replaceTrackIds(trackListReverse, imageDataFirst)
+                jointImages.append(imageTwo)
+                break
+    mergedImageData = imageDataFirst + imageDataSecond
+    for image in jointImages:
+        mergedImageData.remove(image)
+    return mergedImageData
+
+
+mergedImageData = connectTracks(imageDataFirst, imageDataSecond)
+def getKey(filename):
+    return int(filename[-9:-5])
+
+mergedImageData.sort(key= lambda x: getKey(x.filename))
 
 def writeXML(imageData, fileNameOutput):
     root = ET.Element('data')
@@ -101,6 +150,8 @@ def writeXML(imageData, fileNameOutput):
             ET.SubElement(classNameXML, 'project_id').text = boundingBox.className
             if boundingBox.trackId != -1:
                 ET.SubElement(classNameXML, 'track_id').text = str(boundingBox.trackId)
+            else:
+                ET.SubElement(classNameXML, 'track_id').text
 
 
     xmlstr = minidom.parseString(ET.tostring(root, encoding="UTF-8")).toprettyxml(indent="  ", encoding='utf-8')
@@ -108,7 +159,7 @@ def writeXML(imageData, fileNameOutput):
         f.write(xmlstr)
 
 
-writeXML(imageData, fileNameOutput)
+writeXML(mergedImageData, fileNameOutput)
 # for data in imageData:
 #     print(data.filename)
 #     for boundingBox in data.boundingBoxes:
