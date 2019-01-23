@@ -108,6 +108,7 @@ def parse_xml_anastroj(file):
     print(src_names)
     return tracks, mat, src_names
 # ------------------------------------------------------------------------------------------
+
 def save_as_anastroj_file(tracks, src_names, file_name):
     print('save file as anastroj: ', file_name)
     import xml.etree.ElementTree as element
@@ -159,6 +160,40 @@ def save_as_anastroj_file(tracks, src_names, file_name):
     tree.write('output_tracking\/' + file_name + '.xml')
     print('Done')
 # ------------------------------------------------------------------------------------------
+def save_xml2(tracks, src_names, file_name):
+    import xml.etree.ElementTree as ET
+    from xml.dom import minidom
+
+    root = ET.Element('data')
+    metadata = ET.SubElement(root, 'metadata')
+    ET.SubElement(metadata, 'data_id').text = 'sa_dataset'
+    ET.SubElement(metadata, 'parent')
+    ET.SubElement(metadata, 'version_major').text = '2'
+    ET.SubElement(metadata, 'xml_sid')
+    ET.SubElement(metadata, 'description').text = 'Anotacny nastroj v1.02'
+    images = ET.SubElement(root, 'images')
+    track_id = 0
+    for image in tracks:
+        imageXML = ET.SubElement(images, 'image')
+        ET.SubElement(imageXML, 'src').text = src_names[track_id]
+        boundingBoxesXML = ET.SubElement(imageXML, 'boundingboxes')
+        for boundingBox in image:
+            boundingBoxXML = ET.SubElement(boundingBoxesXML, 'boundingbox')
+            ET.SubElement(boundingBoxXML, 'x_left_top').text = str(boundingBox[0])
+            ET.SubElement(boundingBoxXML, 'y_left_top').text = str(boundingBox[1])
+            ET.SubElement(boundingBoxXML, 'width').text = str(boundingBox[4])
+            ET.SubElement(boundingBoxXML, 'height').text = str(boundingBox[5])
+            classNameXML = ET.SubElement(boundingBoxXML, 'class_name')
+            ET.SubElement(classNameXML, 'project_id').text = 'bunka'
+            if track_id != -1:
+                ET.SubElement(classNameXML, 'track_id').text = str(track_id)
+            else:
+                ET.SubElement(classNameXML, 'track_id').text
+        track_id += 1
+    xmlstr = minidom.parseString(ET.tostring(root, encoding="UTF-8")).toprettyxml(indent="  ", encoding='utf-8')
+    with open(file_name, "wb") as f:
+        f.write(xmlstr)
+
 def remove_one_cell_from_all_frame(mat): # zmaze 1 bunku z kazdeho framu - bunku vyberie nahodne
     from random import randint
     for frame in range(len(mat)):
@@ -1183,10 +1218,12 @@ else:
     mat = parse_xml('input_tracking\/'+file_name)
 
 # zmaze niektore bunky z anastroja - z matice mat !!!!!!!!!!!!!!
-#mat = remove_one_cell_from_all_frame(mat)
+random.seed(20)
+mat = remove_one_cell_from_all_frame(mat)
 #mat = remove_one_cell_from_all_frame(mat)
 #mat = remove_some_cell_random(mat, 50)
-
+#mat only 200 frames
+mat = mat[:200]
 if (str(len(tracks) == '0')):
     print('-----------------------------------------------------------------------------------------------')
     #parameters = input('Parameters (dist a b) for simple tracking: [12,8,8]')
@@ -1257,8 +1294,8 @@ while resolve:
 print('calculating flow matrix')
 print('-----------------------------------------------------------------------------------------------')
 # file_xml = input('File name for export: ')
-file_xml = "some_file.xml"
-generate_tracks_xml_real(merged_tracks,file_xml,frame_rate, pixel_size)
+#file_xml = "some_file.xml"
+#generate_tracks_xml_real(merged_tracks,file_xml,frame_rate, pixel_size)
 print('-----------------------------------------------------------------------------------------------')
 
 # --- ***
@@ -1268,9 +1305,12 @@ if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
     file_name = input('1 File name for anastroj export: ')
     save_as_anastroj_file(tracks, src_names, file_name)
 
-show = 'y'
-FlowMatrix.calculate_flow_matrix(flow_matrix)
-merged_tracks = Tracking.merge_tracks_flow_matrix(merged_tracks, flow_matrix, 5,20)
+show = 'n'
+#FlowMatrix.calculate_flow_matrix(flow_matrix)
+#merged_tracks = Tracking.merge_tracks_flow_matrix(merged_tracks, flow_matrix, 5,20)
+merged_tracks = Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 5, 20)
+file_name = input('1 File name for anastroj export: ')
+save_as_anastroj_file(merged_tracks, src_names, file_name)
 if (show == 'y' or show == 'yes' or show == 'Y' or show == 'YES'):
     name = input('1 File name for img:')
     img_tracks = np.zeros((int(y), int(x), 3), np.uint8)

@@ -5,7 +5,6 @@ import cv2
 import numpy as np
 import random
 import datetime, os
-import Test
 
 
 def merge_tracks(track_array, unresolved_points, frame_difference, radius=50):
@@ -19,6 +18,10 @@ def merge_tracks(track_array, unresolved_points, frame_difference, radius=50):
     :param radius: maximalne okolie ktore sa prehladava
     :return: pole pospajanych tras vo formate matice
     """
+    sum0 = 0
+    for tr in track_array:
+        sum0 += len(tr)
+
     tracks = create_tracks(track_array)
     print_info(tracks)
     before = []
@@ -41,7 +44,7 @@ def merge_tracks(track_array, unresolved_points, frame_difference, radius=50):
                 track2_first_bb = track_for_merge.bounding_boxes[0]
                 track1_last_bb = track.bounding_boxes[-1]
                 if is_in_radius(track1_last_bb, track2_first_bb, radius) \
-                        and track1_last_bb < track2_first_bb <= track1_last_bb + frame_difference:
+                        and track1_last_bb.frame_index < track2_first_bb.frame_index <= track1_last_bb.frame_index + frame_difference:
                     tracks_in_radius.append(Track(None, track_for_merge))
 
         # add array of all tracks which can be joined to track
@@ -52,7 +55,14 @@ def merge_tracks(track_array, unresolved_points, frame_difference, radius=50):
     merged = join_tracks_min_error(tracks, array_for_join, True, False)
     print_info(merged)
 
-    print_track2(merged, before)
+    sum1 = 0
+    sum2 = 0
+    for tr in before:
+        sum1 += len(tr.bounding_boxes)
+    for tr in merged:
+        sum2 += len(tr.bounding_boxes)
+
+    print('sum0=' + str(sum0) + 'sum1=' + str(sum1) + 'sum2=' + str(sum2))
     merged = track_object_to_matrix(merged)
     return merged
 
@@ -68,7 +78,11 @@ def merge_tracks_flow_matrix(track_array, flow_matrix, frame_difference, radius=
     :param radius: maximalny radius
     :return: maticu spojenych tras
     """
+    sum0 = 0
+    for tr in track_array:
+        sum0 += len(tr)
     tracks = create_tracks(track_array)
+
     print_info(tracks)
     before = []
     for track in tracks:
@@ -93,16 +107,16 @@ def merge_tracks_flow_matrix(track_array, flow_matrix, frame_difference, radius=
     new_tracks = join_tracks_flow_matrix(tracks, array_for_join, flow_matrix, radius)
     print_info(new_tracks)
 
-    print_track2(new_tracks, before)
-    new_tracks = track_object_to_matrix(new_tracks)
-    '''print('----')
-    for track_index in range(len(new_tracks)):
-        pom = ''
-        for bb in new_tracks[track_index].bounding_boxes:
-            pom += str(bb.frame_index) + ','
-        print(pom)
+    print('done')
+    sum1 = 0
+    sum2 = 0
+    for tr in before:
+        sum1 += len(tr.bounding_boxes)
+    for tr in new_tracks:
+        sum2 += len(tr.bounding_boxes)
 
-    print('-----')'''
+    print('sum0=' + str(sum0) + 'sum1=' + str(sum1)+ 'sum2=' + str(sum2))
+    new_tracks = track_object_to_matrix(new_tracks)
     return new_tracks
 
 
@@ -178,22 +192,18 @@ def join_tracks_flow_matrix(tracks, tracks_for_merge, flow_matrix, max_radius):
         copy = merge_tracks_array.copy()
         # pole indexov na zmazanie
         index_for_del = []
-        # TODO kuknut sa nato, asi to nefunguje spravne
         for index in range(len(copy)):
-            # ak je trasa 1 rovnaka ako spojena trasa zmaze sa
-            if copy[index].first_track == first:
-                index_for_del.append(index)
-            # ak je trasa 2 rovnaka ako spojena trasa zmaze sa
-            if copy[index].second_track == first:
-                index_for_del.append(index)
             if copy[index].first_track == first_copy:
                 index_for_del.append(index)
-            if copy[index].second_track == first_copy:
-                #index_for_del.append(index)
-                merge_tracks_array[index].second_track = first
             if copy[index].first_track == second:
                 merge_tracks_array[index].first_track = first
+            if copy[index].second_track == first_copy:
+                merge_tracks_array[index].second_track = first
             if copy[index].second_track == second:
+                index_for_del.append(index)
+            if copy[index].first_track == first:
+                index_for_del.append(index)
+            if copy[index].second_track == first:
                 index_for_del.append(index)
         for ind in reversed(index_for_del):
             del merge_tracks_array[ind]
@@ -206,7 +216,7 @@ def join_tracks_flow_matrix(tracks, tracks_for_merge, flow_matrix, max_radius):
     for track in tracks:
         if track not in no_duplicate_array:
             no_duplicate_array.append(track)
-
+    # print_track2(no_duplicate_array,  no_duplicate_array)
     return no_duplicate_array
 
 
@@ -252,17 +262,17 @@ def join_tracks_min_error(tracks, tracks_for_merge, method1=True, method2=False)
         copy = merge_tracks_array.copy()
         index_for_del = []
         for index in range(len(copy)):
-            if copy[index].first_track == first:
-                index_for_del.append(index)
-            if copy[index].second_track == first:
-                index_for_del.append(index)
             if copy[index].first_track == first_copy:
-                index_for_del.append(index)
-            if copy[index].second_track == first_copy:
                 index_for_del.append(index)
             if copy[index].first_track == second:
                 merge_tracks_array[index].first_track = first
+            if copy[index].second_track == first_copy:
+                merge_tracks_array[index].second_track = first
             if copy[index].second_track == second:
+                index_for_del.append(index)
+            if copy[index].first_track == first:
+                index_for_del.append(index)
+            if copy[index].second_track == first:
                 index_for_del.append(index)
         for ind in reversed(index_for_del):
             del merge_tracks_array[ind]
@@ -286,7 +296,7 @@ def create_tracks(track_array):
     :return: pole objektov
     """
     tracks = []
-    track_id = 1
+    track_id = 0
     for track in track_array:
         t = Track(track)
         t.id = track_id
@@ -462,7 +472,6 @@ def get_position(x, y, angle, speed):
     """
     x_new = x + math.cos(angle)*speed
     y_new = y + math.cos(angle)*speed
-    print('old x=' + str(x) + ' old y=' + str(y) + ' speed=' + str(speed) + ' angle=' + str(angle) + ' n x=' + str(x_new) + ' y new=' + str(y_new))
     return x_new, y_new
 
 
@@ -542,7 +551,15 @@ def track_object_to_matrix(tracks):
     return new_tracks
 
 
-def test_tracks(gt_tracks, alg_tracks):
-    gt_tracks2 = create_tracks(gt_tracks)
-    alg_tracks2 = create_tracks(alg_tracks)
-    Test.tracks_test(gt_tracks2, alg_tracks2)
+def compare_tracks(file_ground_truth, flow_matrix):
+    import XMLParser
+    tracks_gt, mat, src_name = XMLParser.parse_xml_anastroj2(file_ground_truth)
+    result = merge_tracks_flow_matrix(tracks_gt, flow_matrix, 5)
+    print(result)
+    '''tracks_gt = create_tracks(tracks_gt)
+    for t in tracks_gt:
+        for bb in t.bounding_boxes:
+            if bb.x == 858 and bb.y == 200:
+                print('found')
+    print('daco')'''
+
