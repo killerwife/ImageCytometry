@@ -34,10 +34,10 @@ def readXML(fileName, imageData):
         boundingBoxes = child.find('boundingboxes')
         for boundingBoxXML in boundingBoxes.findall('boundingbox'):
             boundingBox = BoundingBox()
-            boundingBox.x = boundingBoxXML.find('x_left_top').text
-            boundingBox.y = boundingBoxXML.find('y_left_top').text
-            boundingBox.width = boundingBoxXML.find('width').text
-            boundingBox.height = boundingBoxXML.find('height').text
+            boundingBox.x = int(boundingBoxXML.find('x_left_top').text)
+            boundingBox.y = int(boundingBoxXML.find('y_left_top').text)
+            boundingBox.width = int(boundingBoxXML.find('width').text)
+            boundingBox.height = int(boundingBoxXML.find('height').text)
             if version == 1:
                 className = boundingBoxXML.find('class')
                 if className is None:
