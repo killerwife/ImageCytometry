@@ -553,7 +553,7 @@ def track_object_to_matrix(tracks):
 
 def compare_tracks(file_ground_truth, flow_matrix):
     import XMLParser
-    tracks_gt, mat, src_name = XMLParser.parse_xml_anastroj2(file_ground_truth)
+    tracks_gt, mat, src_name = XMLParser.parseXMLData(file_ground_truth)
     result = merge_tracks_flow_matrix(tracks_gt, flow_matrix, 5)
     print(result)
     '''tracks_gt = create_tracks(tracks_gt)

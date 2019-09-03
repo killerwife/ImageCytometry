@@ -3,8 +3,8 @@ import XMLParser, Track
 
 def load_tracks(file_ground_truth, file_alg):
     print('loading')
-    tracks_gt, mat, src_name = XMLParser.parse_xml_anastroj_v2(file_ground_truth)
-    tracks_alg, mat, src_name = XMLParser.parse_xml_anastroj(file_alg)
+    tracks_gt, mat, src_name = XMLParser.parseXMLData(file_ground_truth)
+    tracks_alg, mat, src_name = XMLParser.parseXMLData(file_alg)
     print('loaded')
     tracks_objects_gt = Track.create_tracks(tracks_gt)
     tracks_objects_alg = Track.create_tracks(tracks_alg)
@@ -124,7 +124,6 @@ def true_positive_segments(tracks_gt, tracks_alg):
                         count_fn += 1
                         fn_list.append(track_gt.bounding_boxes[index_gt])
 
-
                 if found:
                     break
             if not found:
@@ -240,8 +239,8 @@ def save_test():
 
 
 def compare_tracks(file_ground_truth, file_alg):
-    tracks_gt, mat, src_name = XMLParser.parse_xml_anastroj2(file_ground_truth)
-    tracks_alg, mat, src_name = XMLParser.parse_xml_anastroj2(file_alg)
+    tracks_gt, mat, src_name = XMLParser.parseXMLData(file_ground_truth)
+    tracks_alg, mat, src_name = XMLParser.parseXMLData(file_alg)
 
     tracks_objects_gt = Track.create_tracks(tracks_gt)
     tracks_objects_alg = Track.create_tracks(tracks_alg)
@@ -271,7 +270,7 @@ def compare_tracks(file_ground_truth, file_alg):
     print('Total=' + str(not_found))
 # flow_matrix_merge_200 .... julia_tracking_200_frame
 # load_tracks("C:\\Users\\Miroslav Buzgo\\Desktop\\21-1-merge.xml", "C:\\Users\\Miroslav Buzgo\\Desktop\\tracks_1_200.xml")
-load_tracks("C:\\Users\\Miroslav Buzgo\\Desktop\\tracks_1_200.xml", "C:\\Users\\Miroslav Buzgo\\Desktop\\merge-20-5-random.xml")
+load_tracks("D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\tracks_1_200.xml", "D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\outputTracks5.xml")
 # load_tracks("C:\\Users\\Miroslav Buzgo\\Desktop\\tracks_1_200.xml", "C:\\Users\\Miroslav Buzgo\\Desktop\\julia-12-8-8-random.xml")
 #load_tracks("C:\\Users\\Miroslav Buzgo\\Desktop\\tracks_1_200.xml", "C:\\Users\\Miroslav Buzgo\\Desktop\\flow-matrix-20-5-random.xml")
 # save_test()

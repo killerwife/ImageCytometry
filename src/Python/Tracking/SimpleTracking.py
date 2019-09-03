@@ -3,7 +3,7 @@ import numpy as np
 import math
 import random
 import Tracking, FlowMatrix
-
+import XMLParser
 
 def parse_xml(file):
     # naplnenie matice mat suradnicami bodov podla framov. Ak je zadama aj matrix- naplni sa "pomocna matica" (i,j) obsahuju cisla framov, v ktorych sa nachadzaju body so suradnicami i,j
@@ -40,159 +40,6 @@ def parse_xml(file):
     print('\tparticles: ' + str(total_count) )
     print('\tdone')
     return mat
-
-
-# ------------------------------------------------------------------------------------------
-def parse_xml_anastroj(file):
-    print('Parsing: ' + file)
-    import xml.etree.ElementTree as ET
-    tree = ET.parse(file)
-    root = tree.getroot()
-    number = -1
-    from math import floor
-    tracks = []
-    src_names = []
-
-    for child in root: # images in data
-        for child2 in child: # image in images
-            print(str(child2.find('src').text))
-            src_names.append(child2.find('src').text)
-            for child3 in child2: # boundingboxes in image
-                if (child3.tag == 'boundingboxes'):
-                    boundingboxes = child3
-                    number += 1
-                    for boundingbox in boundingboxes.iter('boundingbox'):
-                        x_left = int(boundingbox.find('x_left_top').text)
-                        y_left = int(boundingbox.find('y_left_top').text)
-                        width = int(boundingbox.find('width').text)
-                        height = int(boundingbox.find('height').text)
-                        x = int((x_left + floor(width / 2)))
-                        y = int((y_left + floor(height/2)))
-                        track_id = -1
-
-                        for att in boundingbox.iter('attribute'):
-                            if (att.text != None):
-                                track_id = (att.text)
-
-                        if (track_id != -1):
-                            if (str(track_id) != 'false'):
-                                if (track_id >= str(len(tracks))):
-                                    # for pre tolko, kolko ich treba este pridat
-                                    print('TI ', (track_id))
-                                    print('tracks: ', int(len(tracks)) + 1)
-                                    count_to_add = int(track_id) - int(len(tracks)) + 1
-                                    for i in range(count_to_add):
-                                        track = []
-                                        tracks.append(track)
-                                tracks[int(track_id)].append([x, y, 1, number, width, height])
-
-                        if (number >= len(mat)):
-                            # for pre tolko, kolko ich treba este pridat
-                            count_to_add = int(number) - int(len(mat)) + 1
-                            for i in range(count_to_add):
-                                frame = []
-                                mat.append(frame)
-                        if (track_id == -1):
-                            mat[int(number)].append([x, y, 0, number, width, height])
-                        else:
-                            mat[int(number)].append([x, y, 1, number, width, height])
-                    #number += 1
-
-
-    print('--- *************** TRACKS: ************************** ---')
-    print(tracks)
-    print('- - - - - - - - - - - - - - - - - - - - - - - - ')
-    print('--- ***************** MATRIX: ************************ ---')
-    print(mat)
-    print('- - - - - - - - - - - - - - - - - - - - - - - - ')
-    print(src_names)
-    return tracks, mat, src_names
-# ------------------------------------------------------------------------------------------
-
-def save_as_anastroj_file(tracks, src_names, file_name):
-    print('save file as anastroj: ', file_name)
-    import xml.etree.ElementTree as element
-    from io import BytesIO
-    from math import floor
-
-    document = element.Element('outer')
-    node = element.SubElement(document, 'inner')
-    et = element.ElementTree(document)
-    f = BytesIO()
-    et.write(f, encoding='utf-8', xml_declaration=True)
-    print(f.getvalue())  # your XML file, encoded as UTF-8
-    #root = element.SubElement(et,"data")
-
-
-
-    root = element.Element("data")
-    images = element.SubElement(root, "images")
-
-    for x in range(len(mat)):
-        image = element.SubElement(images,"image")
-
-        if (len(src_names) != 0):
-            src = element.SubElement(image, "src")
-            src.text = str(src_names[x])
-
-        boundingboxes = element.SubElement(image,"boundingboxes")
-        for y in range(len(mat[x])):
-            boundingbox = element.SubElement(boundingboxes,"boundingbox")
-            x_left_top = element.SubElement(boundingbox, "x_left_top")
-            x_left_top.text = str(mat[x][y][0]- floor(mat[x][y][4]/2))
-
-            y_left_top = element.SubElement(boundingbox, "y_left_top")
-            y_left_top.text = str(mat[x][y][1] - floor(mat[x][y][5]/2))
-
-            width = element.SubElement(boundingbox, "width")
-            width.text = str(mat[x][y][4])
-
-            height = element.SubElement(boundingbox, "height")
-            height.text = str(mat[x][y][5])
-            class_name = element.SubElement(boundingbox, "class", {"name": 'bunka'})
-            attribute = element.SubElement(class_name, "attribute", {"name":'track_id'})
-
-            for n in range(len(tracks)):
-                if (mat[x][y] in tracks[n]):
-                    attribute.text = str(n)
-
-    tree = element.ElementTree(root)
-    tree.write('output_tracking\/' + file_name + '.xml')
-    print('Done')
-# ------------------------------------------------------------------------------------------
-def save_xml2(tracks, src_names, file_name):
-    import xml.etree.ElementTree as ET
-    from xml.dom import minidom
-
-    root = ET.Element('data')
-    metadata = ET.SubElement(root, 'metadata')
-    ET.SubElement(metadata, 'data_id').text = 'sa_dataset'
-    ET.SubElement(metadata, 'parent')
-    ET.SubElement(metadata, 'version_major').text = '2'
-    ET.SubElement(metadata, 'xml_sid')
-    ET.SubElement(metadata, 'description').text = 'Anotacny nastroj v1.02'
-    images = ET.SubElement(root, 'images')
-    track_id = 0
-    for image in tracks:
-        imageXML = ET.SubElement(images, 'image')
-        ET.SubElement(imageXML, 'src').text = src_names[track_id]
-        boundingBoxesXML = ET.SubElement(imageXML, 'boundingboxes')
-        for boundingBox in image:
-            boundingBoxXML = ET.SubElement(boundingBoxesXML, 'boundingbox')
-            ET.SubElement(boundingBoxXML, 'x_left_top').text = str(boundingBox[0])
-            ET.SubElement(boundingBoxXML, 'y_left_top').text = str(boundingBox[1])
-            ET.SubElement(boundingBoxXML, 'width').text = str(boundingBox[4])
-            ET.SubElement(boundingBoxXML, 'height').text = str(boundingBox[5])
-            classNameXML = ET.SubElement(boundingBoxXML, 'class_name')
-            ET.SubElement(classNameXML, 'project_id').text = 'bunka'
-            if track_id != -1:
-                ET.SubElement(classNameXML, 'track_id').text = str(track_id)
-            else:
-                ET.SubElement(classNameXML, 'track_id').text
-        track_id += 1
-    xmlstr = minidom.parseString(ET.tostring(root, encoding="UTF-8")).toprettyxml(indent="  ", encoding='utf-8')
-    with open(file_name, "wb") as f:
-        f.write(xmlstr)
 
 def remove_one_cell_from_all_frame(mat): # zmaze 1 bunku z kazdeho framu - bunku vyberie nahodne
     from random import randint
@@ -1197,29 +1044,31 @@ print('------------------------------------------')
 print('------------------------------------------')
 # file_name = input('File name for parse: [export_1280x720_3_30_radius_12.xml]')
 #file_name = 'export_1280x720_3_30_radius_12.xml'
-file_name = 'anastroj_1280x720_3_30_radius_12.xml'
+
+file_name = 'tracks_1_200_model21032019_02-200.xml'
+xml_dir = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\'
 #file_name = 'anastroj_1280x720_3_30_12px.xml'
 #--toto nie, to je ine:
 # file_name = 'export_800x600_3_30_12px.xml'
-resolution = file_name.split('_')
-x,y = resolution[1].split('x')
-
-frame_rate = 1/int(resolution[3])
-pixel_size = 1/int(resolution[2])
+oldFormat = False
+x = 1280
+y = 720
+frame_rate = 1/30
+pixel_size = 1/3
 
 tracks = []
 unresolved_from_tracking = []
 mat =[]
 src_names = []
 
-if (resolution[0] == 'anastroj'):
-    tracks, mat, src_names = parse_xml_anastroj('input_tracking\/'+file_name)
+if oldFormat == False:
+    tracks, mat, src_names = XMLParser.parseXMLData(xml_dir+file_name)
 else:
-    mat = parse_xml('input_tracking\/'+file_name)
+    mat = parse_xml(xml_dir+file_name)
 
 # zmaze niektore bunky z anastroja - z matice mat !!!!!!!!!!!!!!
 random.seed(20)
-mat = remove_one_cell_from_all_frame(mat)
+#mat = remove_one_cell_from_all_frame(mat)
 #mat = remove_one_cell_from_all_frame(mat)
 #mat = remove_some_cell_random(mat, 50)
 #mat only 200 frames
@@ -1303,14 +1152,14 @@ print('-------------------------------------------------------------------------
 save = 'n'
 if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
     file_name = input('1 File name for anastroj export: ')
-    save_as_anastroj_file(tracks, src_names, file_name)
+    XMLParser.save_as_anastroj_file(mat, tracks, src_names, xml_dir + file_name + '.xml')
 
 show = 'n'
 #FlowMatrix.calculate_flow_matrix(flow_matrix)
 #merged_tracks = Tracking.merge_tracks_flow_matrix(merged_tracks, flow_matrix, 5,20)
 merged_tracks = Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 5, 20)
 file_name = input('1 File name for anastroj export: ')
-save_as_anastroj_file(merged_tracks, src_names, file_name)
+XMLParser.save_as_anastroj_file(mat, merged_tracks, src_names, xml_dir + file_name + '.xml')
 if (show == 'y' or show == 'yes' or show == 'Y' or show == 'YES'):
     name = input('1 File name for img:')
     img_tracks = np.zeros((int(y), int(x), 3), np.uint8)
