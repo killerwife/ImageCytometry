@@ -55,13 +55,14 @@ def processImages(annotatedData, predictedData):
         totalObjects += totalBoxes
         print('File{:s} Hits:{:d} Missed:{:d} FalseAlarms:{:d} Objects:{:d}'.format(annotatedData[i].filename, hits, missed, falseAlarm, totalBoxes))
         i += 1
-    print('\nTotal: Hits:{:d} Missed:{:d} FalseAlarms:{:d} Objects:{:d}'.format(totalHits, totalMissed, totalFalseAlarms, totalObjects))
+    print('\nTotal: Hits:{:d} Missed:{:d} FalseAlarms:{:d} Objects:{:d} Precision:{:.1f}% Recall:{:.1f}%'.format(
+        totalHits, totalMissed, totalFalseAlarms, totalObjects, float(totalHits)/(totalHits + totalFalseAlarms) * 100, float(totalHits)/(totalHits + totalMissed) * 100))
 
 
 
-MODEL_NAME = 'model21042019_02-200Gray'
+MODEL_NAME = 'fixedSSDExperiment100000'
 fileNamePredicted = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\tracks_1_200.xml'
-fileNameAnnotated = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\tracks_1_200_' + MODEL_NAME + '.xml'
+fileNameAnnotated = 'D:\\BigData\\cellinfluid\\Annotations\\PredictedAnnotations\\tracks_1_200_' + MODEL_NAME + '.xml'
 annotatedData = []
 predictedData = []
 XMLRead.readXML(fileNamePredicted, annotatedData)

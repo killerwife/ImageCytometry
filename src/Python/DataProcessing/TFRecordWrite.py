@@ -3,17 +3,24 @@ import XMLRead
 import cv2
 from object_detection.utils import dataset_util
 
-flags = tf.app.flags
-flags.DEFINE_string('output_path', 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\outputRecord200',
-                    'Path to output TFRecord')
-FLAGS = flags.FLAGS
+FOLDER_PATH = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\'
+DATA_RECORD_NAME = '250And50'
 
-datadir = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\'
+imageFolders = []
+imageFolders.append('D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\')
+imageFolders.append('D:\\BigData\\cellinfluid\\deformabilityObrazky\\')
+# datadirOriginal = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\'
+# datadirNoBackground = 'D:\\BigData\\cellinfluid\\subtractedBackgrounds\\'
+xmlFiles = []
+xmlFiles.append('tracks_1_200.xml')
+xmlFiles.append('deformabilityAnnotations.xml')
+stopPoints = []
+stopPoints.append((200, 251))
+stopPoints.append((30, 51))
 
-
-def create_tf_example(imageData):
-    # image = cv2.imread(datadir + imageData.filename, cv2.IMREAD_GRAYSCALE)
-    image = cv2.imread(datadir + imageData.filename, cv2.IMREAD_COLOR)
+def create_tf_example(imageData, imagePath):
+    # image = cv2.imread(imagePath + imageData.filename, cv2.IMREAD_GRAYSCALE)
+    image = cv2.imread(imagePath + imageData.filename, cv2.IMREAD_COLOR)
     filename = imageData.filename  # Filename of the image. Empty if image is not from file
     encoded_image_data = cv2.imencode('.png', image)[1].tostring()
     encoded_image_string_tf = tf.compat.as_bytes(encoded_image_data)
@@ -54,27 +61,33 @@ def create_tf_example(imageData):
     }))
     return tf_example
 
-
-def main(_):
-    writer = tf.python_io.TFRecordWriter(FLAGS.output_path + '1' + '.record')
-
-    # TODO(user): Write code to read in your dataset to examples variable
-    examples = []
-    filePathImageData = datadir + 'tracks_1_200.xml'
-    XMLRead.readXML(filePathImageData, examples)
+def processXML(writers, annotatedData, boundary, end, index):
     i = 0
-    for example in examples:
+    writerIndex = 0
+    for example in annotatedData:
         i = i + 1
-        tf_example = create_tf_example(example)
-        writer.write(tf_example.SerializeToString())
-        if i == 150:
-            writer.close()
-            writer = tf.python_io.TFRecordWriter(FLAGS.output_path + '2' + '.record')
-        elif i == 201:
+        tf_example = create_tf_example(example, imageFolders[index])
+        writers[writerIndex].write(tf_example.SerializeToString())
+        if i == boundary:
+            writerIndex += 1
+        elif i == end:
             break
 
-    writer.close()
+def main(_):
+    writers = []
+    writers.append(tf.python_io.TFRecordWriter(FOLDER_PATH + 'train' + DATA_RECORD_NAME + '.record'))
+    writers.append(tf.python_io.TFRecordWriter(FOLDER_PATH + 'eval' + DATA_RECORD_NAME + '.record'))
 
+    i = 0
+    while i < len(imageFolders):
+        annotatedData = []
+        filePathImageData = imageFolders[i] + xmlFiles[i]
+        XMLRead.readXML(filePathImageData, annotatedData)
+        processXML(writers, annotatedData, stopPoints[i][0], stopPoints[i][1], i)
+        i += 1
+
+    writers[0].close()
+    writers[1].close()
 
 if __name__ == '__main__':
     tf.app.run()

@@ -27,17 +27,21 @@ def load_image_into_numpy_array(image):
         (im_height, im_width, 3)).astype(np.uint8)
 
 
-PATH_TO_TEST_IMAGES_DIR = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\501-2992'
+# PATH_TO_TEST_IMAGES_DIR = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\501-2992'
 # TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, 'video2359_050{}.tiff'.format(i)) for i in range(1, 10) ]
-IMAGE_PREFIX = 'tiff'
+# IMAGE_PREFIX = 'tiff'
 # PATH_TO_TEST_IMAGES_DIR = 'D:\\BigData\\cellinfluid\\deformabilityObrazky'
 # TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, 'image{}.png'.format(i)) for i in range(0, 10) ]
 # IMAGE_PREFIX = 'deformability'
 # Size, in inches, of the output images.
+PATH_TO_ANNOTATIONS = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\'
+PATH_TO_PREDICTED_ANNOTATIONS = 'D:\\BigData\\cellinfluid\\Annotations\\PredictedAnnotations\\'
+PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\' # regular
+# PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\subtractedBackgrounds\\' # no background
 IMAGE_SIZE = (12, 8)
 
-MODEL_NAME = 'model21032019_02-200Gray'
-GRAYSCALE = True
+MODEL_NAME = 'fixedSSDExperiment100000'
+GRAYSCALE = False
 PATH_TO_FROZEN_GRAPH = 'C:\\GitHubCode\\phd\\exportedModels\\' + MODEL_NAME + '\\frozen_inference_graph.pb'
 
 IMAGE_BATCH = 5
@@ -134,13 +138,13 @@ def run_inference_for_all_files(graph, fileNames):
 
 i = 0
 imageArray = []
-fileNamePredicted = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\tracks_1_200.xml'
-fileNameOutput = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\tracks_1_200_' + MODEL_NAME + '.xml'
+fileNamePredicted = PATH_TO_ANNOTATIONS + 'tracks_1_200.xml'
+fileNameOutput = PATH_TO_PREDICTED_ANNOTATIONS + 'tracks_1_200_' + MODEL_NAME + '.xml'
 annotatedData = []
 XMLRead.readXML(fileNamePredicted, annotatedData)
 fileNames = []
 for data in annotatedData:
-    fileNames.append('D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\' + data.filename)
+    fileNames.append(PATH_TO_IMAGE_ROOT_DIR + data.filename)
 
 outputData = run_inference_for_all_files(detection_graph, fileNames)
 XMLRead.writeXML(outputData, fileNameOutput)
