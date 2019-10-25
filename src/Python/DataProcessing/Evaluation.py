@@ -38,14 +38,14 @@ def evaluateImage(originalBoxes, predictedBoxes):
         i += 1
     return hits, missed, falseAlarm, totalBoxes
 
-def processImages(annotatedData, predictedData):
+def processImages(annotatedData, predictedData, barrier):
     totalHits = 0
     totalMissed = 0
     totalFalseAlarms = 0
     totalObjects = 0
     i = 0
     while i < len(annotatedData):
-        if i < 200:
+        if i < barrier:
             i += 1
             continue
         hits, missed, falseAlarm, totalBoxes = evaluateImage(annotatedData[i].boundingBoxes, predictedData[i].boundingBoxes)
@@ -59,15 +59,22 @@ def processImages(annotatedData, predictedData):
         totalHits, totalMissed, totalFalseAlarms, totalObjects, float(totalHits)/(totalHits + totalFalseAlarms) * 100, float(totalHits)/(totalHits + totalMissed) * 100))
 
 
-
-MODEL_NAME = 'fixedSSDExperiment100000'
-fileNamePredicted = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\tracks_1_200.xml'
-fileNameAnnotated = 'D:\\BigData\\cellinfluid\\Annotations\\PredictedAnnotations\\tracks_1_200_' + MODEL_NAME + '.xml'
+FIRST_VIDEO = False
+MODEL_NAME = 'model08042019-250And50'
+if FIRST_VIDEO == True:
+    ANNOTATIONS_FILE_NAME = 'tracks_1_300.xml'
+    BARRIER = 250
+else:
+    ANNOTATIONS_FILE_NAME = 'deformabilityAnnotations.xml'
+    BARRIER = 50
+    MODEL_NAME += 'SecondVideo'
+fileNamePredicted = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\' + ANNOTATIONS_FILE_NAME
+fileNameAnnotated = 'D:\\BigData\\cellinfluid\\Annotations\\PredictedAnnotations\\tracks_1_300_' + MODEL_NAME + '.xml'
 annotatedData = []
 predictedData = []
 XMLRead.readXML(fileNamePredicted, annotatedData)
 XMLRead.readXML(fileNameAnnotated, predictedData)
-processImages(annotatedData, predictedData)
+processImages(annotatedData, predictedData, BARRIER)
 
 
 

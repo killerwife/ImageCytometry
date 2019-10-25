@@ -27,10 +27,11 @@ class BackgroundSubtraction(object):
         return background
 
 
-PATH_TO_XML_ROOT_DIR = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\'
+PATH_TO_ANNOTATIONS = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\'
+PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\'
 PATH_TO_OUTPUT_ROOT_DIR = 'D:\\BigData\\cellinfluid\\subtractedBackgroundsSingleImage\\'
 
-fileNamePredicted = PATH_TO_XML_ROOT_DIR + 'tracks_1_200.xml'
+fileNamePredicted = PATH_TO_ANNOTATIONS + 'tracks_1_300.xml'
 annotatedData = []
 XMLRead.readXML(fileNamePredicted, annotatedData)
 
@@ -47,7 +48,7 @@ def subtractBackgrounds(annotatedData):
     # history
     # bgOwn = BackgroundSubtraction(10)
     # for imageData in annotatedData:
-    #     image = cv2.imread(PATH_TO_XML_ROOT_DIR + imageData.filename)
+    #     image = cv2.imread(PATH_TO_IMAGE_ROOT_DIR + imageData.filename)
     #     #output = fgbg.apply(image)
     #     bgOwn.addImage(image)
     #     output = background_subtraction(image, bgOwn.getBackground())
@@ -58,7 +59,7 @@ def subtractBackgrounds(annotatedData):
 
     images = []
     for imageData in annotatedData:
-        image = cv2.imread(PATH_TO_XML_ROOT_DIR + imageData.filename)
+        image = cv2.imread(PATH_TO_IMAGE_ROOT_DIR + imageData.filename)
         images.append(image)
 
     i = 0
@@ -85,6 +86,9 @@ def makeDirs(path):
     if not os.path.exists(newDir):
         os.makedirs(newDir)
     newDir = path + '201-250'
+    if not os.path.exists(newDir):
+        os.makedirs(newDir)
+    newDir = path + '251-300'
     if not os.path.exists(newDir):
         os.makedirs(newDir)
 

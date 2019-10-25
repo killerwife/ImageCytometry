@@ -34,15 +34,27 @@ def load_image_into_numpy_array(image):
 # TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, 'image{}.png'.format(i)) for i in range(0, 10) ]
 # IMAGE_PREFIX = 'deformability'
 # Size, in inches, of the output images.
-PATH_TO_ANNOTATIONS = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\'
+PATH_TO_ANNOTATIONS = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\'
 PATH_TO_PREDICTED_ANNOTATIONS = 'D:\\BigData\\cellinfluid\\Annotations\\PredictedAnnotations\\'
-PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\' # regular
-# PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\subtractedBackgrounds\\' # no background
-IMAGE_SIZE = (12, 8)
 
-MODEL_NAME = 'fixedSSDExperiment100000'
+MODEL_NAME = 'model08042019-250And50'
 GRAYSCALE = False
+BACKGROUND = False
+FIRST_VIDEO = False
 PATH_TO_FROZEN_GRAPH = 'C:\\GitHubCode\\phd\\exportedModels\\' + MODEL_NAME + '\\frozen_inference_graph.pb'
+if FIRST_VIDEO == True:
+    ANNOTATIONS_FILE_NAME = 'tracks_1_300.xml'
+    if BACKGROUND == False:
+        PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\'  # regular
+    else:
+        PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\subtractedBackgrounds\\' # no background
+else:
+    ANNOTATIONS_FILE_NAME = 'deformabilityAnnotations.xml'
+    if BACKGROUND == False:
+        PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\\deformabilityObrazky\\'  # regular
+    else:
+        PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\\deformabilityObrazky\\subtractedBackgrounds\\' # no background - TODO
+    MODEL_NAME += 'SecondVideo'
 
 IMAGE_BATCH = 5
 
@@ -138,8 +150,8 @@ def run_inference_for_all_files(graph, fileNames):
 
 i = 0
 imageArray = []
-fileNamePredicted = PATH_TO_ANNOTATIONS + 'tracks_1_200.xml'
-fileNameOutput = PATH_TO_PREDICTED_ANNOTATIONS + 'tracks_1_200_' + MODEL_NAME + '.xml'
+fileNamePredicted = PATH_TO_ANNOTATIONS + ANNOTATIONS_FILE_NAME
+fileNameOutput = PATH_TO_PREDICTED_ANNOTATIONS + 'tracks_1_300_' + MODEL_NAME + '.xml'
 annotatedData = []
 XMLRead.readXML(fileNamePredicted, annotatedData)
 fileNames = []

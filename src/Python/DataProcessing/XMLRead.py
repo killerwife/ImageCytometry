@@ -70,15 +70,6 @@ def readXML(fileName, imageData):
             image.boundingBoxes.append(boundingBox)
         imageData.append(image)
 
-
-fileNameFirst = '../../XML/track_1_51_151_200.xml'
-fileNameSecond = '../../XML/trasy_51_151_xml2.xml'
-fileNameOutput = '../../XML/tracks_1_200.xml'
-imageDataFirst = []
-imageDataSecond = []
-readXML(fileNameFirst, imageDataFirst)
-readXML(fileNameSecond, imageDataSecond)
-
 def replaceTrackIds(trackPairs, imageData):
     for image in imageData:
         for boundingBox in image.boundingBoxes:
@@ -121,11 +112,9 @@ def connectTracks(imageDataFirst, imageDataSecond):
     return mergedImageData
 
 
-mergedImageData = connectTracks(imageDataFirst, imageDataSecond)
+
 def getKey(filename):
     return int(filename[-9:-5])
-
-mergedImageData.sort(key= lambda x: getKey(x.filename))
 
 def writeXML(imageData, fileNameOutput):
     root = ET.Element('data')
@@ -158,10 +147,22 @@ def writeXML(imageData, fileNameOutput):
     with open(fileNameOutput, "wb") as f:
         f.write(xmlstr)
 
+def mergeXML():
+    fileNameFirst = '../../XML/track_1_51_151_200.xml'
+    fileNameSecond = '../../XML/trasy_51_151_xml2.xml'
+    fileNameOutput = '../../XML/tracks_1_200.xml'
+    imageDataFirst = []
+    imageDataSecond = []
+    readXML(fileNameFirst, imageDataFirst)
+    readXML(fileNameSecond, imageDataSecond)
+    mergedImageData = connectTracks(imageDataFirst, imageDataSecond)
 
-writeXML(mergedImageData, fileNameOutput)
-# for data in imageData:
-#     print(data.filename)
-#     for boundingBox in data.boundingBoxes:
-#         print(boundingBox.trackId)
+    mergedImageData.sort(key=lambda x: getKey(x.filename))
+    writeXML(mergedImageData, fileNameOutput)
+    # for data in imageData:
+    #     print(data.filename)
+    #     for boundingBox in data.boundingBoxes:
+    #         print(boundingBox.trackId)
+
+
 
