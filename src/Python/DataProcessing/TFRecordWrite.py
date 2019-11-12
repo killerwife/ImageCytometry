@@ -4,18 +4,21 @@ import cv2
 from object_detection.utils import dataset_util
 
 FOLDER_PATH = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\'
-DATA_RECORD_NAME = '250And50'
+DATA_RECORD_NAME = '250NoBackground'
 
+BACKGROUND = True
 imageFolders = []
-imageFolders.append('D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\')
-imageFolders.append('D:\\BigData\\cellinfluid\\deformabilityObrazky\\')
-# datadirOriginal = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\'
-# datadirNoBackground = 'D:\\BigData\\cellinfluid\\subtractedBackgrounds\\'
+# imageFolders.append('D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\')
+imageFolders.append('D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\subtractedBackgrounds\\')
+# imageFolders.append('D:\\BigData\\cellinfluid\\deformabilityObrazky\\')
+# imageFolders.append('D:\\BigData\\cellinfluid\\deformabilityObrazky\\subtractedBackgrounds\\')
 xmlFiles = []
-xmlFiles.append('tracks_1_200.xml')
-xmlFiles.append('deformabilityAnnotations.xml')
+xmlFiles.append('tracks_1_300.xml')
+# xmlFiles.append('deformabilityAnnotations.xml')
+PATH_TO_ANNOTATED_DATA = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\'
+
 stopPoints = []
-stopPoints.append((200, 251))
+stopPoints.append((200, 250))
 stopPoints.append((30, 51))
 
 def create_tf_example(imageData, imagePath):
@@ -81,7 +84,7 @@ def main(_):
     i = 0
     while i < len(imageFolders):
         annotatedData = []
-        filePathImageData = imageFolders[i] + xmlFiles[i]
+        filePathImageData = PATH_TO_ANNOTATED_DATA + xmlFiles[i]
         XMLRead.readXML(filePathImageData, annotatedData)
         processXML(writers, annotatedData, stopPoints[i][0], stopPoints[i][1], i)
         i += 1

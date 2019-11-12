@@ -14,9 +14,8 @@ class BackgroundSubtraction(object):
         self.images.append(image)
 
     def getBackground(self):
-        #background = numpy.float32(numpy.zeros_like(self.images[0]))
-        background = numpy.float32(self.images[0])
-        for i in range(1, len(self.images)):
+        background = numpy.float32(numpy.zeros_like(self.images[0]))
+        for i in range(0, len(self.images)):
             cv2.accumulateWeighted(self.images[i], background, 0.5)
         return background
 

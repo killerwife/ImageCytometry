@@ -74,4 +74,4 @@ def show_record(filenames):
 
 
 if __name__ == "__main__":
-    show_record('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\eval200NoBackground.record')
+    show_record('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\eval250NoBackground.record')
