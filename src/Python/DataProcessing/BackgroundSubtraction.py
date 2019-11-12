@@ -14,24 +14,36 @@ class BackgroundSubtraction(object):
         self.images.append(image)
 
     def getBackground(self):
+        #background = numpy.float32(numpy.zeros_like(self.images[0]))
         background = numpy.float32(self.images[0])
         for i in range(1, len(self.images)):
             cv2.accumulateWeighted(self.images[i], background, 0.5)
         return background
 
     def getBackgroundFromAll(self, images):
-        background = numpy.float32(images[0])
+        background = numpy.float32(numpy.zeros_like(images[0]))
         imageCount = len(images)
-        for i in range(1, imageCount):
+        for i in range(0, imageCount):
             cv2.accumulateWeighted(images[i], background, 0.01)
         return background
 
-
+FIRST_VIDEO = True
+SINGLE_IMAGE = False
 PATH_TO_ANNOTATIONS = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\'
-PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\'
-PATH_TO_OUTPUT_ROOT_DIR = 'D:\\BigData\\cellinfluid\\subtractedBackgroundsSingleImage\\'
+if FIRST_VIDEO:
+    PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\'
+    ANNOTATIONS_FILE_NAME = 'tracks_1_300.xml'
+else:
+    PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\\deformabilityObrazky\\'
+    ANNOTATIONS_FILE_NAME = 'deformabilityAnnotations.xml'
 
-fileNamePredicted = PATH_TO_ANNOTATIONS + 'tracks_1_300.xml'
+PATH_TO_OUTPUT_ROOT_DIR = PATH_TO_IMAGE_ROOT_DIR
+if SINGLE_IMAGE:
+    PATH_TO_OUTPUT_ROOT_DIR += 'subtractedBackgroundsSingleImage\\'
+else:
+    PATH_TO_OUTPUT_ROOT_DIR += 'subtractedBackgrounds\\'
+
+fileNamePredicted = PATH_TO_ANNOTATIONS + ANNOTATIONS_FILE_NAME
 annotatedData = []
 XMLRead.readXML(fileNamePredicted, annotatedData)
 
@@ -45,30 +57,29 @@ def background_subtraction(gray_image, background_image):
 
 def subtractBackgrounds(annotatedData):
     # fgbg = cv2.bgsegm.createBackgroundSubtractorCNT()
-    # history
-    # bgOwn = BackgroundSubtraction(10)
-    # for imageData in annotatedData:
-    #     image = cv2.imread(PATH_TO_IMAGE_ROOT_DIR + imageData.filename)
-    #     #output = fgbg.apply(image)
-    #     bgOwn.addImage(image)
-    #     output = background_subtraction(image, bgOwn.getBackground())
-    #     cv2.imwrite(PATH_TO_OUTPUT_ROOT_DIR + imageData.filename, output)
+    if SINGLE_IMAGE == False: # history
+        bgOwn = BackgroundSubtraction(10)
+        for imageData in annotatedData:
+            image = cv2.imread(PATH_TO_IMAGE_ROOT_DIR + imageData.filename)
+            # output = fgbg.apply(image)
+            bgOwn.addImage(image)
+            output = background_subtraction(image, bgOwn.getBackground())
+            cv2.imwrite(PATH_TO_OUTPUT_ROOT_DIR + imageData.filename, output)
+    else: # one background
+        bgOwn = BackgroundSubtraction(300)
 
-    # one background
-    bgOwn = BackgroundSubtraction(300)
+        images = []
+        for imageData in annotatedData:
+            image = cv2.imread(PATH_TO_IMAGE_ROOT_DIR + imageData.filename)
+            images.append(image)
 
-    images = []
-    for imageData in annotatedData:
-        image = cv2.imread(PATH_TO_IMAGE_ROOT_DIR + imageData.filename)
-        images.append(image)
-
-    i = 0
-    background = bgOwn.getBackgroundFromAll(images)
-    cv2.imwrite('Derp.png', background)
-    for imageData in annotatedData:
-        output = background_subtraction(images[i], background)
-        cv2.imwrite(PATH_TO_OUTPUT_ROOT_DIR + imageData.filename, output)
-        i += 1
+        i = 0
+        background = bgOwn.getBackgroundFromAll(images)
+        cv2.imwrite('Derp.png', background)
+        for imageData in annotatedData:
+            output = background_subtraction(images[i], background)
+            cv2.imwrite(PATH_TO_OUTPUT_ROOT_DIR + imageData.filename, output)
+            i += 1
 
 
 
@@ -79,6 +90,8 @@ def makeDirs(path):
     newDir = path + '51-100'
     if not os.path.exists(newDir):
         os.makedirs(newDir)
+    if FIRST_VIDEO == False:
+        return
     newDir = path + '101-150'
     if not os.path.exists(newDir):
         os.makedirs(newDir)

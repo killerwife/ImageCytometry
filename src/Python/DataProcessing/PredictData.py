@@ -37,37 +37,22 @@ def load_image_into_numpy_array(image):
 PATH_TO_ANNOTATIONS = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\'
 PATH_TO_PREDICTED_ANNOTATIONS = 'D:\\BigData\\cellinfluid\\Annotations\\PredictedAnnotations\\'
 
-MODEL_NAME = 'model08042019-250And50'
-GRAYSCALE = False
-BACKGROUND = False
-FIRST_VIDEO = False
-PATH_TO_FROZEN_GRAPH = 'C:\\GitHubCode\\phd\\exportedModels\\' + MODEL_NAME + '\\frozen_inference_graph.pb'
-if FIRST_VIDEO == True:
-    ANNOTATIONS_FILE_NAME = 'tracks_1_300.xml'
-    if BACKGROUND == False:
-        PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\'  # regular
-    else:
-        PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\subtractedBackgrounds\\' # no background
-else:
-    ANNOTATIONS_FILE_NAME = 'deformabilityAnnotations.xml'
-    if BACKGROUND == False:
-        PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\\deformabilityObrazky\\'  # regular
-    else:
-        PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\\deformabilityObrazky\\subtractedBackgrounds\\' # no background - TODO
-    MODEL_NAME += 'SecondVideo'
-
 IMAGE_BATCH = 5
-
-detection_graph = tf.Graph()
-with detection_graph.as_default():
-    od_graph_def = tf.GraphDef()
-    with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
-        serialized_graph = fid.read()
-        od_graph_def.ParseFromString(serialized_graph)
-        tf.import_graph_def(od_graph_def, name='')
+GRAYSCALE = False
 
 
-def run_inference_for_all_files(graph, fileNames):
+def loadGraph(filepath):
+    detection_graph = tf.Graph()
+    with detection_graph.as_default():
+        od_graph_def = tf.GraphDef()
+        with tf.gfile.GFile(filepath, 'rb') as fid:
+            serialized_graph = fid.read()
+            od_graph_def.ParseFromString(serialized_graph)
+            tf.import_graph_def(od_graph_def, name='')
+    return detection_graph
+
+
+def run_inference_for_all_files(graph, fileNames, imageArray):
     outputData = []
     with graph.as_default():
         with tf.Session() as sess:
@@ -148,15 +133,50 @@ def run_inference_for_all_files(graph, fileNames):
     return outputData
 
 
-i = 0
-imageArray = []
-fileNamePredicted = PATH_TO_ANNOTATIONS + ANNOTATIONS_FILE_NAME
-fileNameOutput = PATH_TO_PREDICTED_ANNOTATIONS + 'tracks_1_300_' + MODEL_NAME + '.xml'
-annotatedData = []
-XMLRead.readXML(fileNamePredicted, annotatedData)
-fileNames = []
-for data in annotatedData:
-    fileNames.append(PATH_TO_IMAGE_ROOT_DIR + data.filename)
+def loadAndSave(pathToAnnotations, annotationsFileName, pathToPredictions, modelName, imageRootDir, pathToGraph):
+    i = 0
+    imageArray = []
+    fileNamePredicted = pathToAnnotations + annotationsFileName
+    fileNameOutput = pathToPredictions + 'tracks_1_300_' + modelName + '.xml'
+    annotatedData = []
+    XMLRead.readXML(fileNamePredicted, annotatedData)
+    fileNames = []
+    for data in annotatedData:
+        fileNames.append(imageRootDir + data.filename)
 
-outputData = run_inference_for_all_files(detection_graph, fileNames)
-XMLRead.writeXML(outputData, fileNameOutput)
+    graph = loadGraph(pathToGraph)
+    outputData = run_inference_for_all_files(graph, fileNames, imageArray)
+    XMLRead.writeXML(outputData, fileNameOutput)
+
+
+def loadVariables(firstVideo, background, modelName):
+    PATH_TO_FROZEN_GRAPH = 'C:\\GitHubCode\\phd\\exportedModels\\' + modelName + '\\frozen_inference_graph.pb'
+    if firstVideo == True:
+        ANNOTATIONS_FILE_NAME = 'tracks_1_300.xml'
+        if background == False:
+            PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\'  # regular
+        else:
+            PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\subtractedBackgrounds\\'  # no background
+    else:
+        ANNOTATIONS_FILE_NAME = 'deformabilityAnnotations.xml'
+        if background == False:
+            PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\\deformabilityObrazky\\'  # regular
+        else:
+            PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\\deformabilityObrazky\\subtractedBackgrounds\\'  # no background - TODO
+        modelName += 'SecondVideo'
+
+    loadAndSave(PATH_TO_ANNOTATIONS, ANNOTATIONS_FILE_NAME, PATH_TO_PREDICTED_ANNOTATIONS, modelName,
+                PATH_TO_IMAGE_ROOT_DIR, PATH_TO_FROZEN_GRAPH)
+
+
+# loadVariables(True, True, 'model21032019-200NoBackground')
+loadVariables(True, True, 'model21032019_02-200NoBackground')
+loadVariables(True, True, 'model08042019-200NoBackground')
+#
+# loadVariables(False, True, 'model21032019-200NoBackground')
+# loadVariables(False, True, 'model21032019_02-200NoBackground')
+# loadVariables(False, True, 'model08042019-200NoBackground')
+
+# loadVariables(False, False, 'model21032019-250')
+# loadVariables(False, False, 'model21032019_02-250')
+# loadVariables(False, False, 'model08042019-250')
