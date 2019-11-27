@@ -1,6 +1,7 @@
 import XMLRead
 import cv2
 import math
+import os
 
 maxPosDiff = float(0.5)
 PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\'
@@ -47,7 +48,8 @@ def evaluateImage(originalBoxes, predictedBoxes):
     falseAlarm = 0
     totalBoxes = len(originalBoxes)
     foundRefs = [False] * totalBoxes
-    falseAlarms = []
+    falsePositives = []
+    falseNegatives = []
     for predictedBox in predictedBoxes:
         i = 0
         highestOverlap = 0
@@ -65,7 +67,7 @@ def evaluateImage(originalBoxes, predictedBoxes):
             i += 1
         if highestOverlap < 0.1:
             falseAlarm = falseAlarm + 1
-            falseAlarms.append(predictedBox)
+            falsePositives.append(predictedBox)
         else:
             foundRefs[highestIndex] = True
             if highestOverlap < 0.3:
@@ -82,8 +84,9 @@ def evaluateImage(originalBoxes, predictedBoxes):
     while i < len(foundRefs):
         if foundRefs[i] == False:
             missed = missed + 1
+            falseNegatives.append(originalBoxes[i])
         i += 1
-    return hits, missed, falseAlarm, totalBoxes, falseAlarms, distances
+    return hits, missed, falseAlarm, totalBoxes, falsePositives, falseNegatives, distances
 
 def processImages(annotatedData, predictedData, barrier_low, barrier_high, modelName, partialOutputs):
     totalHits = []
@@ -94,40 +97,50 @@ def processImages(annotatedData, predictedData, barrier_low, barrier_high, model
     totalDistances.append(0)
     totalDistances.append(0)
     totalMissed = 0
-    totalFalseAlarms = 0
+    totalFalsePositives = 0
     totalObjects = 0
     i = 0
     while i < len(annotatedData):
         if i < barrier_low:
             i += 1
             continue
-        hits, missed, falseAlarm, totalBoxes, falseAlarms, distances = evaluateImage(annotatedData[i].boundingBoxes, predictedData[i].boundingBoxes)
+        hits, missed, falseAlarm, totalBoxes, falsePositives, falseNegatives, distances = evaluateImage(annotatedData[i].boundingBoxes, predictedData[i].boundingBoxes)
         totalHits[0] += hits[0]
         totalHits[1] += hits[1]
         totalHits[2] += hits[2]
         totalDistances[0] += distances[0]
         totalDistances[1] += distances[1]
         totalMissed += missed
-        totalFalseAlarms += falseAlarm
+        totalFalsePositives += falseAlarm
         totalObjects += totalBoxes
         if partialOutputs:
             print('File{:s} Hits:0.5>{:d} 0.3>{:d} 0.1>{:d} Missed:{:d} FalseAlarms:{:d} Objects:{:d}'.format(annotatedData[i].filename, hits[0], hits[1], hits[2], missed, falseAlarm, totalBoxes))
-        # image = cv2.imread(PATH_TO_IMAGE_ROOT_DIR + annotatedData[i].filename)
-        # for predictedBox in falseAlarms:
-        #     cv2.rectangle(image, (predictedBox.x, predictedBox.y), (predictedBox.x + predictedBox.width, predictedBox.y + predictedBox.height), (0, 255, 0), 3)
+        image = cv2.imread(PATH_TO_IMAGE_ROOT_DIR + annotatedData[i].filename)
+        k = 0
+        for predictedBox in falsePositives:
+            cutout = image[predictedBox.y:predictedBox.y+predictedBox.height, predictedBox.x:predictedBox.x+predictedBox.width]
+            cv2.imwrite('FalsePos\\' + str(i) + 'image' + str(k) + '.png', cutout)
+            k += 1
+            # cv2.rectangle(image, (predictedBox.x, predictedBox.y), (predictedBox.x + predictedBox.width, predictedBox.y + predictedBox.height), (0, 255, 0), 3)
+        k = 0
+        for predictedBox in falseNegatives:
+            cutout = image[predictedBox.y:predictedBox.y+predictedBox.height, predictedBox.x:predictedBox.x+predictedBox.width]
+            cv2.imwrite('FalseNeg\\' + str(i) + 'image' + str(k) + '.png', cutout)
+            k += 1
+            # cv2.rectangle(image, (predictedBox.x, predictedBox.y), (predictedBox.x + predictedBox.width, predictedBox.y + predictedBox.height), (0, 0, 255), 3)
         # cv2.imshow("test",image)
         # cv2.waitKey()
         i += 1
         precision = 0
-        if totalHits[0] + totalHits[1] + totalHits[2] + totalFalseAlarms > 0:
-            precision = float(totalHits[0] + totalHits[1] + totalHits[2])/(totalHits[0] + totalHits[1] + totalHits[2] + totalFalseAlarms) * 100
+        if totalHits[0] + totalHits[1] + totalHits[2] + totalFalsePositives > 0:
+            precision = float(totalHits[0] + totalHits[1] + totalHits[2])/(totalHits[0] + totalHits[1] + totalHits[2] + totalFalsePositives) * 100
         recall = 0
         if totalHits[0] + totalHits[1] + totalHits[2] + totalMissed > 0:
             recall =  float(totalHits[0] + totalHits[1] + totalHits[2])/(totalHits[0] + totalHits[1] + totalHits[2] + totalMissed) * 100
         if i >= barrier_high:
             break
     print('\n' + modelName + ' - Total: Hits: 0.5>{:d} 0.3>{:d} 0.1>{:d} Distances: 0.3<{:d} 0.5<{:d} Missed:{:d} FalseAlarms:{:d} Objects:{:d} Precision:{:.1f}% Recall:{:.1f}%'.format(
-        totalHits[0], totalHits[1], totalHits[2], totalDistances[0], totalDistances[1], totalMissed, totalFalseAlarms, totalObjects, precision, recall))
+        totalHits[0], totalHits[1], totalHits[2], totalDistances[0], totalDistances[1], totalMissed, totalFalsePositives, totalObjects, precision, recall))
 
 
 def loadAndProcess(firstVideo, modelName):
@@ -148,29 +161,55 @@ def loadAndProcess(firstVideo, modelName):
     XMLRead.readXML(fileNameAnnotated, predictedData)
     processImages(annotatedData, predictedData, barrier_low, barrier_high, modelName, False)
 
-loadAndProcess(True, 'model21032019-200NoBackground')
-loadAndProcess(True, 'model21032019_02-200NoBackground')
-loadAndProcess(True, 'model08042019-200NoBackground')
+newDir = 'FalseNeg'
+if not os.path.exists(newDir):
+    os.makedirs(newDir)
 
-loadAndProcess(False, 'model21032019-200NoBackground')
-loadAndProcess(False, 'model21032019_02-200NoBackground')
-loadAndProcess(False, 'model08042019-200NoBackground')
+newDir = 'FalsePos'
+if not os.path.exists(newDir):
+    os.makedirs(newDir)
 
-loadAndProcess(True, 'model21032019-250')
-loadAndProcess(True, 'model21032019_02-250')
-loadAndProcess(True, 'model08042019-250')
+# loadAndProcess(True, 'model21032019-250NoBackground100000')
+# loadAndProcess(True, 'model21032019_02-250NoBackground100000')
+# loadAndProcess(True, 'model08042019-250NoBackground100000')
+#
+# loadAndProcess(False, 'model21032019-250NoBackground100000')
+# loadAndProcess(False, 'model21032019_02-250NoBackground100000')
+# loadAndProcess(False, 'model08042019-250NoBackground100000')
 
-loadAndProcess(False, 'model21032019-250')
-loadAndProcess(False, 'model21032019_02-250')
-loadAndProcess(False, 'model08042019-250')
-
-loadAndProcess(True, 'model21032019-250And50')
+# loadAndProcess(True, 'model21032019-200')
+# loadAndProcess(True, 'model21032019_02-200')
+# loadAndProcess(True, 'model08042019-200')
+# loadAndProcess(True, 'fixedSSDExperiment100000')
+#
+# loadAndProcess(False, 'model21032019-200')
+# loadAndProcess(False, 'model21032019_02-200')
+# loadAndProcess(False, 'model08042019-200')
+# loadAndProcess(False, 'fixedSSDExperiment100000')
+#
+# loadAndProcess(True, 'model21032019-250')
+# loadAndProcess(True, 'model21032019_02-250')
+# loadAndProcess(True, 'model08042019-250')
+# loadAndProcess(True, 'fixedSSDExperiment250100000')
+#
+# loadAndProcess(False, 'model21032019-250')
+# loadAndProcess(False, 'model21032019_02-250')
+# loadAndProcess(False, 'model08042019-250')
+# loadAndProcess(False, 'fixedSSDExperiment250100000')
+#
+# loadAndProcess(True, 'model21032019-250And50')
 loadAndProcess(True, 'model21032019_02-250And50')
-loadAndProcess(True, 'model08042019-250And50')
-
-loadAndProcess(False, 'model21032019-250And50')
-loadAndProcess(False, 'model21032019_02-250And50')
-loadAndProcess(False, 'model08042019-250And50')
+# loadAndProcess(True, 'model08042019-250And50')
+# loadAndProcess(True, 'fixedSSDExperiment250And50100000')
+# loadAndProcess(True, 'fixedSSDExperimentV2250And50100000')
+# loadAndProcess(True, 'fixedSSDExperimentV3250And50100000')
+#
+# loadAndProcess(False, 'model21032019-250And50')
+# loadAndProcess(False, 'model21032019_02-250And50')
+# loadAndProcess(False, 'model08042019-250And50')
+# loadAndProcess(False, 'fixedSSDExperiment250And50100000')
+# loadAndProcess(False, 'fixedSSDExperimentV2250And50100000')
+# loadAndProcess(False, 'fixedSSDExperimentV3250And50100000')
 
 
 

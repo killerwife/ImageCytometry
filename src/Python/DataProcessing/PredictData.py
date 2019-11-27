@@ -168,14 +168,35 @@ def loadVariables(firstVideo, background, modelName):
     loadAndSave(PATH_TO_ANNOTATIONS, ANNOTATIONS_FILE_NAME, PATH_TO_PREDICTED_ANNOTATIONS, modelName,
                 PATH_TO_IMAGE_ROOT_DIR, PATH_TO_FROZEN_GRAPH)
 
+loadVariables(True, False, 'fixedSSDExperimentV3250And50100000')
+loadVariables(False, False, 'fixedSSDExperimentV3250And50100000')
 
-# loadVariables(True, True, 'model21032019-200NoBackground')
-loadVariables(True, True, 'model21032019_02-200NoBackground')
-loadVariables(True, True, 'model08042019-200NoBackground')
+# loadVariables(True, False, 'fixedSSDExperimentV2250And50100000')
+# loadVariables(False, False, 'fixedSSDExperimentV2250And50100000')
+
+# loadVariables(True, False, 'model21032019-200')
+# loadVariables(False, False, 'model21032019-200')
+# loadVariables(True, False, 'model21032019_02-200')
+# loadVariables(False, False, 'model21032019_02-200')
+# loadVariables(True, False, 'model08042019-200')
+# loadVariables(False, False, 'model08042019-200')
+# loadVariables(True, False, 'fixedSSDExperiment100000')
+# loadVariables(False, False, 'fixedSSDExperiment100000')
+
+# loadVariables(True, True, '')
+# loadVariables(False, True, '')
+
+# loadVariables(True, True, 'model21032019-250NoBackground100000')
+# loadVariables(True, True, 'model21032019_02-250NoBackground100000')
+# loadVariables(True, True, 'model08042019-250NoBackground100000')
+# loadVariables(True, True, 'fixedSSDExperiment250100000')
+# loadVariables(True, True, 'fixedSSDExperiment250And50100000')
 #
-# loadVariables(False, True, 'model21032019-200NoBackground')
-# loadVariables(False, True, 'model21032019_02-200NoBackground')
-# loadVariables(False, True, 'model08042019-200NoBackground')
+# loadVariables(False, True, 'model21032019-250NoBackground100000')
+# loadVariables(False, True, 'model21032019_02-250NoBackground100000')
+# loadVariables(False, True, 'model08042019-250NoBackground100000')
+# loadVariables(False, True, 'fixedSSDExperiment250100000')
+# loadVariables(False, True, 'fixedSSDExperiment250And50100000')
 
 # loadVariables(False, False, 'model21032019-250')
 # loadVariables(False, False, 'model21032019_02-250')
