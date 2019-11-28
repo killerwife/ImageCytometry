@@ -39,7 +39,7 @@ class Video(Enum):
     BETKA = 2
     DALSIE = 3
 
-VIDEO = Video.BETKA
+VIDEO = Video.DALSIE
 MODE = BgMode.NO_NORMAL
 XML = True
 PATH_TO_ANNOTATIONS = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\'
@@ -54,7 +54,7 @@ elif VIDEO == Video.BETKA:
     ANNOTATIONS_FILE_NAME = 'betkaAnnotations.xml'
 elif VIDEO == Video.DALSIE:
     XML = False
-    PATH_TO_IMAGE_ROOT_DIR = '' # pridat cestu do PATH_TO_IMAGE_ROOT_DIR kde su vsetky obrazky
+    PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\deformabilityObrazky\\1-50\\' # pridat cestu do PATH_TO_IMAGE_ROOT_DIR kde su vsetky obrazky
 
 PATH_TO_OUTPUT_ROOT_DIR = PATH_TO_IMAGE_ROOT_DIR
 if MODE == BgMode.SINGLE_IMAGE:
@@ -64,17 +64,17 @@ elif MODE == BgMode.HISTORY:
 elif MODE == BgMode.NO_NORMAL:
     PATH_TO_OUTPUT_ROOT_DIR += 'subtractedBackgroundsNoNormal\\'
 
-fileNamePredicted = PATH_TO_ANNOTATIONS + ANNOTATIONS_FILE_NAME
 annotatedData = []
 
 if XML:
+    fileNamePredicted = PATH_TO_ANNOTATIONS + ANNOTATIONS_FILE_NAME
     XMLRead.readXML(fileNamePredicted, annotatedData)
 else:
     for r, d, f in os.walk(PATH_TO_IMAGE_ROOT_DIR):
-        for annotatedData in f:
-            if '.txt' in annotatedData:
+        for imagePaths in f:
+            if '.png' in imagePaths:
                 imageData = XMLRead.Image()
-                imageData.filename = os.path.join(r, annotatedData)
+                imageData.filename = imagePaths
                 annotatedData.append(imageData)
 
 
