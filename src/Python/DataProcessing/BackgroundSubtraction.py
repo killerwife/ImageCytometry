@@ -37,9 +37,11 @@ class Video(Enum):
     CANAL = 0
     DEFORMABILITY = 1
     BETKA = 2
+    DALSIE = 3
 
 VIDEO = Video.BETKA
 MODE = BgMode.NO_NORMAL
+XML = True
 PATH_TO_ANNOTATIONS = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\'
 if VIDEO == Video.CANAL:
     PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\'
@@ -50,6 +52,9 @@ elif VIDEO == Video.DEFORMABILITY:
 elif VIDEO == Video.BETKA:
     PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\BetkaVideo\\'
     ANNOTATIONS_FILE_NAME = 'betkaAnnotations.xml'
+elif VIDEO == Video.DALSIE:
+    XML = False
+    PATH_TO_IMAGE_ROOT_DIR = '' # pridat cestu do PATH_TO_IMAGE_ROOT_DIR kde su vsetky obrazky
 
 PATH_TO_OUTPUT_ROOT_DIR = PATH_TO_IMAGE_ROOT_DIR
 if MODE == BgMode.SINGLE_IMAGE:
@@ -61,7 +66,16 @@ elif MODE == BgMode.NO_NORMAL:
 
 fileNamePredicted = PATH_TO_ANNOTATIONS + ANNOTATIONS_FILE_NAME
 annotatedData = []
-XMLRead.readXML(fileNamePredicted, annotatedData)
+
+if XML:
+    XMLRead.readXML(fileNamePredicted, annotatedData)
+else:
+    for r, d, f in os.walk(PATH_TO_IMAGE_ROOT_DIR):
+        for annotatedData in f:
+            if '.txt' in annotatedData:
+                imageData = XMLRead.Image()
+                imageData.filename = os.path.join(r, annotatedData)
+                annotatedData.append(imageData)
 
 
 def background_subtraction(gray_image, background_image):
