@@ -7,7 +7,7 @@ import random
 import datetime, os
 
 
-def merge_tracks(track_array, unresolved_points, frame_difference, radius=50):
+def BoundingBoxmerge_tracks(track_array, unresolved_points, frame_difference, frameCount, radius=50):
     """
     Hlavna funkcia ktora sluzi na mergovanie tras. Na zaciatku sa prerobia trasy z maticneho tvaru na objekty.
     Nasledne sa najdu kandidati na spojenie podla parametra difference a radius. Potom sa trasy spoja na zaklade
@@ -23,7 +23,7 @@ def merge_tracks(track_array, unresolved_points, frame_difference, radius=50):
         sum0 += len(tr)
 
     tracks = create_tracks(track_array)
-    print_info(tracks)
+    print_info(tracks, frameCount)
     before = []
     for track in tracks:
         before.append(Track(None, track))
@@ -53,7 +53,7 @@ def merge_tracks(track_array, unresolved_points, frame_difference, radius=50):
         array_for_join_points.append(points_in_radius)
 
     merged = join_tracks_min_error(tracks, array_for_join, True, False)
-    print_info(merged)
+    print_info(merged, frameCount)
 
     sum1 = 0
     sum2 = 0
@@ -316,7 +316,7 @@ def create_bounding_boxes(bb_array):
         return None
     bounding_boxes = []
     for bb in bb_array:
-        bounding_boxes.append(BoundingBox(bb[0], bb[1], bb[2], bb[3], 0, 0))
+        bounding_boxes.append(TrackBoundingBox(bb[0], bb[1], bb[2], bb[3], 0, 0))
     return bounding_boxes
 
 
@@ -475,11 +475,11 @@ def get_position(x, y, angle, speed):
     return x_new, y_new
 
 
-def print_info(tracks):
+def print_info(tracks, frameCount):
     #snimok
     #pocet tras
     #priemerna dlzka trasy
-    print('Snimok=250')
+    print('Snimok=' + str(frameCount))
     pocet_tras = len(tracks)
     print('Pocet tras=' + str(pocet_tras))
     sum_len = 0

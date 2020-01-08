@@ -42,7 +42,7 @@ def parse_xml(file):
     return mat
 
 
-def parseXMLData(filename):
+def parseXMLData(filename, loadTracks):
     annotatedData = []
     XMLRead.readXML(filename, annotatedData)
     number = -1
@@ -79,7 +79,7 @@ def parseXMLData(filename):
                 for i in range(count_to_add):
                     frame = []
                     mat.append(frame)
-            if track_id == -1:
+            if track_id == -1 or loadTracks == False:
                 mat[int(number)].append([x, y, 0, number, width, height])
             else:
                 mat[int(number)].append([x, y, 1, number, width, height])

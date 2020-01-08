@@ -168,8 +168,8 @@ def loadVariables(firstVideo, background, modelName):
     loadAndSave(PATH_TO_ANNOTATIONS, ANNOTATIONS_FILE_NAME, PATH_TO_PREDICTED_ANNOTATIONS, modelName,
                 PATH_TO_IMAGE_ROOT_DIR, PATH_TO_FROZEN_GRAPH)
 
-loadVariables(True, False, 'fixedSSDExperimentV3250And50100000')
-loadVariables(False, False, 'fixedSSDExperimentV3250And50100000')
+# loadVariables(True, False, 'fixedSSDExperimentV3250And50100000')
+# loadVariables(False, False, 'fixedSSDExperimentV3250And50100000')
 
 # loadVariables(True, False, 'fixedSSDExperimentV2250And50100000')
 # loadVariables(False, False, 'fixedSSDExperimentV2250And50100000')
@@ -201,3 +201,31 @@ loadVariables(False, False, 'fixedSSDExperimentV3250And50100000')
 # loadVariables(False, False, 'model21032019-250')
 # loadVariables(False, False, 'model21032019_02-250')
 # loadVariables(False, False, 'model08042019-250')
+
+loadVariables(True, False, 'model21032019-250And50-1100000')
+loadVariables(False, False, 'model21032019-250And50-1100000')
+
+loadVariables(True, False, 'model21032019-250And50-2100000')
+loadVariables(False, False, 'model21032019-250And50-2100000')
+
+loadVariables(True, False, 'model21032019-250And50-3100000')
+loadVariables(False, False, 'model21032019-250And50-3100000')
+
+loadVariables(True, False, 'model21032019-250And50-4100000')
+loadVariables(False, False, 'model21032019-250And50-4100000')
+
+loadVariables(True, False, 'model21032019_02-250And50-1100000')
+loadVariables(False, False, 'model21032019_02-250And50-1100000')
+
+loadVariables(True, False, 'model21032019_02-250And50-2100000')
+loadVariables(False, False, 'model21032019_02-250And50-2100000')
+
+loadVariables(True, False, 'model21032019_02-250And50-3100000')
+loadVariables(False, False, 'model21032019_02-250And50-3100000')
+
+loadVariables(True, False, 'model21032019_02-250And50-4100000')
+loadVariables(False, False, 'model21032019_02-250And50-4100000')
+
+loadVariables(True, False, 'model08042019-250And50-1100000')
+loadVariables(False, False, 'model08042019-250And50-1100000')
+

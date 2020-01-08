@@ -1045,8 +1045,10 @@ print('------------------------------------------')
 # file_name = input('File name for parse: [export_1280x720_3_30_radius_12.xml]')
 #file_name = 'export_1280x720_3_30_radius_12.xml'
 
-file_name = 'tracks_1_200_model21032019_02-200.xml'
-xml_dir = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\'
+# file_name = 'tracks_1_300_model21032019_02-250And50.xml'
+file_name = 'tracks_1_300.xml'
+xml_dir = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\'
+frameCount = 300
 #file_name = 'anastroj_1280x720_3_30_12px.xml'
 #--toto nie, to je ine:
 # file_name = 'export_800x600_3_30_12px.xml'
@@ -1062,7 +1064,7 @@ mat =[]
 src_names = []
 
 if oldFormat == False:
-    tracks, mat, src_names = XMLParser.parseXMLData(xml_dir+file_name)
+    tracks, mat, src_names = XMLParser.parseXMLData(xml_dir+file_name, False)
 else:
     mat = parse_xml(xml_dir+file_name)
 
@@ -1072,7 +1074,7 @@ random.seed(20)
 #mat = remove_one_cell_from_all_frame(mat)
 #mat = remove_some_cell_random(mat, 50)
 #mat only 200 frames
-mat = mat[:200]
+mat = mat[:frameCount]
 if (str(len(tracks) == '0')):
     print('-----------------------------------------------------------------------------------------------')
     #parameters = input('Parameters (dist a b) for simple tracking: [12,8,8]')
@@ -1154,12 +1156,15 @@ if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
     file_name = input('1 File name for anastroj export: ')
     XMLParser.save_as_anastroj_file(mat, tracks, src_names, xml_dir + file_name + '.xml')
 
-show = 'n'
 #FlowMatrix.calculate_flow_matrix(flow_matrix)
 #merged_tracks = Tracking.merge_tracks_flow_matrix(merged_tracks, flow_matrix, 5,20)
-merged_tracks = Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 5, 20)
-file_name = input('1 File name for anastroj export: ')
-XMLParser.save_as_anastroj_file(mat, merged_tracks, src_names, xml_dir + file_name + '.xml')
+merged_tracks = Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 5, frameCount, 20)
+save = 'n'
+if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
+    file_name = input('1 File name for anastroj export: ')
+    XMLParser.save_as_anastroj_file(mat, merged_tracks, src_names, xml_dir + file_name + '.xml')
+
+show = 'y'
 if (show == 'y' or show == 'yes' or show == 'Y' or show == 'YES'):
     name = input('1 File name for img:')
     img_tracks = np.zeros((int(y), int(x), 3), np.uint8)

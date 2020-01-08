@@ -13,11 +13,11 @@ class Track:
             self.bounding_boxes = []
             self.id = track.id
             for bb in track.bounding_boxes:
-                self.bounding_boxes.append(BoundingBox(bb.x, bb.y, 1 , bb.frame_index,bb.width,bb.height))
+                self.bounding_boxes.append(TrackBoundingBox(bb.x, bb.y, 1 , bb.frame_index,bb.width,bb.height))
         elif bounding_boxes is not None:
             self.bounding_boxes = []
             for bb in bounding_boxes:
-                self.bounding_boxes.append(BoundingBox(bb[0], bb[1], bb[2], bb[3], bb[4], bb[5]))
+                self.bounding_boxes.append(TrackBoundingBox(bb[0], bb[1], bb[2], bb[3], bb[4], bb[5]))
         self.angle = 0
         self.vector = (0, 0)
         self.speed = 0

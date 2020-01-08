@@ -3,23 +3,26 @@ import XMLRead
 import cv2
 from object_detection.utils import dataset_util
 
+class DatasetSegment(object):
+    def __init__(self, startExclusion, endExclusion, startBoundary, endBoundary):
+        self.startExclusion = startExclusion
+        self.endExclusion = endExclusion
+        self.startBoundary = startBoundary
+        self.endBoundary = endBoundary
+
 FOLDER_PATH = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\'
 DATA_RECORD_NAME = '250NoBackground'
+PATH_TO_ANNOTATED_DATA = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\'
 
 BACKGROUND = True
 imageFolders = []
-# imageFolders.append('D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\')
-imageFolders.append('D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\subtractedBackgrounds\\')
-# imageFolders.append('D:\\BigData\\cellinfluid\\deformabilityObrazky\\')
+imageFolders.append('D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\')
+# imageFolders.append('D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\subtractedBackgrounds\\')
+imageFolders.append('D:\\BigData\\cellinfluid\\deformabilityObrazky\\')
 # imageFolders.append('D:\\BigData\\cellinfluid\\deformabilityObrazky\\subtractedBackgrounds\\')
 xmlFiles = []
-xmlFiles.append('tracks_1_300.xml')
-# xmlFiles.append('deformabilityAnnotations.xml')
-PATH_TO_ANNOTATED_DATA = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\'
-
-stopPoints = []
-stopPoints.append((200, 250))
-stopPoints.append((30, 51))
+xmlFiles.append(PATH_TO_ANNOTATED_DATA + 'tracks_1_300.xml')
+xmlFiles.append(PATH_TO_ANNOTATED_DATA + 'deformabilityAnnotations.xml')
 
 def create_tf_example(imageData, imagePath):
     # image = cv2.imread(imagePath + imageData.filename, cv2.IMREAD_GRAYSCALE)
@@ -64,33 +67,58 @@ def create_tf_example(imageData, imagePath):
     }))
     return tf_example
 
-def processXML(writers, annotatedData, boundary, end, index):
-    i = 0
-    writerIndex = 0
+def processXML(writers, annotatedData, boundary, index):
+    i = -1
+    counters = []
+    counters.append(0)
+    counters.append(0)
     for example in annotatedData:
         i = i + 1
+        if i >= boundary.startExclusion and i < boundary.endExclusion:
+            continue
+
+        writerIndex = 0
+        if i >= boundary.startBoundary and i < boundary.endBoundary:
+            writerIndex = 1
         tf_example = create_tf_example(example, imageFolders[index])
         writers[writerIndex].write(tf_example.SerializeToString())
-        if i == boundary:
-            writerIndex += 1
-        elif i == end:
-            break
+        counters[writerIndex] += 1
+    print("Inserted images to index " + str(index) + " : " + str(counters[0]) + " " + str(counters[1]))
 
-def main(_):
+
+def generateTfRecord(folderPath, recordName, imageFolders, boundaries, xmlFiles):
     writers = []
-    writers.append(tf.python_io.TFRecordWriter(FOLDER_PATH + 'train' + DATA_RECORD_NAME + '.record'))
-    writers.append(tf.python_io.TFRecordWriter(FOLDER_PATH + 'eval' + DATA_RECORD_NAME + '.record'))
+    writers.append(tf.python_io.TFRecordWriter(folderPath + 'train' + recordName + '.record'))
+    writers.append(tf.python_io.TFRecordWriter(folderPath + 'eval' + recordName + '.record'))
 
     i = 0
     while i < len(imageFolders):
         annotatedData = []
-        filePathImageData = PATH_TO_ANNOTATED_DATA + xmlFiles[i]
+        filePathImageData = xmlFiles[i]
         XMLRead.readXML(filePathImageData, annotatedData)
-        processXML(writers, annotatedData, stopPoints[i][0], stopPoints[i][1], i)
+        processXML(writers, annotatedData, boundaries[i], i)
         i += 1
 
     writers[0].close()
     writers[1].close()
 
-if __name__ == '__main__':
-    tf.app.run()
+boundaries = []
+boundaries.append(DatasetSegment(250, 300, 200, 250))
+boundaries.append(DatasetSegment(50, 100, 30, 50))
+generateTfRecord(FOLDER_PATH, '250And50V2', imageFolders, boundaries, xmlFiles)
+boundaries = []
+boundaries.append(DatasetSegment(0, 50, 200, 250))
+boundaries.append(DatasetSegment(0, 50, 80, 100))
+generateTfRecord(FOLDER_PATH, '250And501nd50', imageFolders, boundaries, xmlFiles)
+boundaries = []
+boundaries.append(DatasetSegment(50, 100, 100, 150))
+boundaries.append(DatasetSegment(0, 50, 50, 70))
+generateTfRecord(FOLDER_PATH, '250And502nd50', imageFolders, boundaries, xmlFiles)
+boundaries = []
+boundaries.append(DatasetSegment(100, 150, 200, 250))
+boundaries.append(DatasetSegment(50, 100, 0, 20))
+generateTfRecord(FOLDER_PATH, '250And503nd50', imageFolders, boundaries, xmlFiles)
+boundaries = []
+boundaries.append(DatasetSegment(150, 200, 0, 50))
+boundaries.append(DatasetSegment(50, 100, 20, 40))
+generateTfRecord(FOLDER_PATH, '250And504nd50', imageFolders, boundaries, xmlFiles)
