@@ -105,15 +105,8 @@ def create_matrix(x, y):
     for i in range(x):
         matrix[i] = [[] for j in range(y)]
     return matrix
-# -----------------------------------------------------------------------------------------
-def create_flow_matrix(x, y):
-    # vytvorenie prazdnej matice o velkosti XxY
-    # print('Creating matrix...')
-    matrix = [[] for i in range(x)]
-    for i in range(x):
-        matrix[i] = [[-1, []] for j in range(y)]
-    return matrix
-# -------------------------------------------------------------------------------
+
+
 def draw_unresolved_points(unresolved,img,radius =1):
     print('unresolved points: '+str(len(unresolved)))
     for j in range(len(unresolved)):
@@ -122,7 +115,8 @@ def draw_unresolved_points(unresolved,img,radius =1):
         y = unresolved[j][1]
         cv2.circle(img, (x, y), radius, color,2)
     return img
-# --------------------------------------------------------------------------------
+
+
 def draw_points(mat, img, radius=1, first=-1, last=-1):
     count = 0
     if ((first == -1) and (last == -1)):
@@ -164,7 +158,8 @@ def draw_points(mat, img, radius=1, first=-1, last=-1):
                 cv2.putText(img, s, (x + 5, y + 5), cv2.FONT_HERSHEY_PLAIN, 0.9, (255, 255, 255))
         print('Particles: ' + str(count))
     return img
-#     --------------------------------------------------------------------------------------------------------------
+
+
 def draw_tracks(tracks, img, first=-1, last=-1):
     print('draw tracks: drawing...')
     if ((first == -1) and (last == -1)):
@@ -195,8 +190,9 @@ def draw_tracks(tracks, img, first=-1, last=-1):
                          1)
 
     return img
-#  ------------------------------------------------------------------------------------------------------------------
-def draw_track_points(tracks,num, img):
+
+
+def draw_track_points(tracks, num, img):
     print('Track: ' + str(num))
     global unresolved_from_tracking
     global mat
@@ -223,25 +219,28 @@ def draw_track_points(tracks,num, img):
             cv2.circle(img, (x, y), 1, colorInTrack, 1)
 
     return img
-#  -------------------------------------------------------------------------------------------------------------------
-##############################################################
+
+
 # get_distance(a, b)
 # This function solves distance between a, b
 # inputs:points a and b
 # returns: distance between a, b
 def get_distance(a, b):
     return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
-# -------------------------------------------------------------------------------------------------
-def get_vector(x2,y2,x1,y1):
-    x=x2-x1
-    y=y2-y1
-    return [x,y]
-# ------------------------------------------------------------------------------------------------------------------
-def get_expected_point(point,vector_x,vector_y):
+
+
+def get_vector(x2, y2, x1, y1):
+    x = x2 - x1
+    y = y2 - y1
+    return [x, y]
+
+
+def get_expected_point(point, vector_x, vector_y):
     x = point[0] + vector_x
     y = point[1] + vector_y
-    return [x,y]
-# -----------------------------------------------------
+    return [x, y]
+
+
 # vypocet vektoroveho sucinu
 def get_cross_product(vector_v,vector,switch):
     if(switch):
@@ -254,16 +253,23 @@ def get_cross_product(vector_v,vector,switch):
             return 1
         else:
             return -1
-# --------------------------------------------------------------------------------------------------------------------
+
+
 # skalarny sucin
 def get_product(vector1, vector2):
     return vector1[0]*vector2[0] + vector1[1]*vector2[1]
-# --------------------------------------------------------------------------------------------------------------------
-def calculate_flow_matrix():
 
+
+def create_flow_matrix(x, y):
+    # vytvorenie prazdnej matice o velkosti XxY
+    # print('Creating matrix...')
+    matrix = [[[-1, []] for j in range(y)] for i in range(x)]
+    return matrix
+
+
+def calculate_flow_matrix(flow_matrix, tracks):
     print('calculating flow matrix')
     points = 0
-    global flow_matrix
     # vypocet vektorov pre body, ktore su v trackoch
     for i in range(len(tracks)):
         for j in range(len(tracks[i]) - 1):
@@ -274,48 +280,43 @@ def calculate_flow_matrix():
             y1 = tracks[i][j][1]
             y2 = tracks[i][j + 1][1]
             y = y2 - y1
-            calculate_point(x,y,tracks[i][j][0],tracks[i][j][1],flow_matrix)
+            calculate_point(flow_matrix, x, y, tracks[i][j][0], tracks[i][j][1])
 
         # nastavenie vektora posledneho bodu v tracku
         points += 1
-        calculate_point(x,y,tracks[i][-1][0],tracks[i][-1][1],flow_matrix)
+        calculate_point(flow_matrix, x, y, tracks[i][-1][0], tracks[i][-1][1])
 
 
-    return flow_matrix
-# -------------------------------------------------------------------------------------------------------------------
-def calculate_point(vector_x, vector_y, cor_x, cor_y, flow_matrix):
+def calculate_point(flow_matrix, vector_x, vector_y, cor_x, cor_y):
     count = flow_matrix[cor_x][cor_y][0]
 
-    if (count == -1):
+    if count == -1:
         flow_matrix[cor_x][cor_y][1] = [vector_x, vector_y]
         flow_matrix[cor_x][cor_y][0] = 1
     else:
-        #                 vypocet priemerneho vektora
+        # vypocet priemerneho vektora
         avg_x = ((count * flow_matrix[cor_x][cor_y][1][0]) + vector_x) / (count + 1)
         avg_y = ((count * flow_matrix[cor_x][cor_y][1][1]) + vector_y) / (count + 1)
         flow_matrix[cor_x][cor_y][1] = [avg_x, avg_y]
         flow_matrix[cor_x][cor_y][0] += 1
-# -------------------------------------------------------------------------------------------------------------------
-def resolve_flow_matrix():
+
+
+def resolve_flow_matrix(flow_matrix, unresolved_from_tracking):
     # doplnit o body, ktore nie su v trackoch
     print('resolving flow matrix: calculating vector for not resolved points')
-    global flow_matrix
-    global unresolved_from_tracking
     no = 0
     for k in range(len(unresolved_from_tracking)):
         x = unresolved_from_tracking[k][0]
         y = unresolved_from_tracking[k][1]
-        if(flow_matrix[x][y][0] == -1):
-            resolve_point(x, y, 1)
+        if flow_matrix[x][y][0] == -1:
+            resolve_point(flow_matrix, x, y, 1)
     #     else:
     #         no += 1
-    #
     # print('Pocet bodov, ktore sa nedopocitavaju: '+ str(no))
     print('\tdone')
-# --------------------------------------------------------------------
-def resolve_point(cor_x, cor_y,iter):
-    global flow_matrix
 
+
+def resolve_point(flow_matrix, cor_x, cor_y, iter):
     max_x = len(flow_matrix) - 1
     max_y = len(flow_matrix[0]) - 1
 
@@ -331,39 +332,37 @@ def resolve_point(cor_x, cor_y,iter):
     for j in range(range_start, (range_end + range_start)):
         # pocitame cely riadok
 
-        if (j == range_start or j == range_start * (-1)):
+        if j == range_start or j == range_start * (-1):
             for i in range(range_start, (range_end + range_start)):
-                if((cor_x + i <= max_x and cor_x + i >= 0 ) and (cor_y + j <= max_y and cor_y + j >= 0 )):   #overit suradnice
-                # if ((cor_x + i <= max_x ) and (cor_y + j <= max_y  )):
+                if (max_x >= cor_x + i >= 0) and (max_y >= cor_y + j >= 0):  # overit suradnice
+                    # if ((cor_x + i <= max_x ) and (cor_y + j <= max_y  )):
                     # print(str(cor_x + i )+ ' ' +str(cor_y + j))
-                    if (flow_matrix[cor_x + i][cor_y + j][0] > 0):
+                    if flow_matrix[cor_x + i][cor_y + j][0] > 0:
                         candidates_vectors.append(flow_matrix[cor_x + i][cor_y + j][1])
                         candidates_cor.append([cor_x + i,cor_y + j])
         else:
-
-            if((cor_x + range_start <= max_x  and cor_x + range_start >= 0) and (cor_y + j <= max_y and cor_y + j >=0)):
-
-                if (flow_matrix[cor_x + range_start][cor_y + j][0] > 0):
+            if max_x >= cor_x + range_start >= 0 and max_y >= cor_y + j >= 0:
+                if flow_matrix[cor_x + range_start][cor_y + j][0] > 0:
                     candidates_vectors.append(flow_matrix[cor_x + range_start][cor_y + j][1])
                     candidates_cor.append([cor_x + range_start,cor_y + j])
-                elif (cor_x - range_start <= max_x and cor_y + j <= max_y):
-                    if(flow_matrix[cor_x - range_start][cor_y + j][0] > 0):
+                elif cor_x - range_start <= max_x and cor_y + j <= max_y:
+                    if flow_matrix[cor_x - range_start][cor_y + j][0] > 0:
                         candidates_vectors.append(flow_matrix[cor_x - range_start][cor_y + j][1])
                         candidates_cor.append([cor_x - range_start,cor_y + j])
 
-    if (len(candidates_vectors) == 0):
-         resolve_point(cor_x, cor_y, iter + 1)
+    if len(candidates_vectors) == 0:
+        resolve_point(flow_matrix, cor_x, cor_y, iter + 1)
     else:
-
         for s in range(len(candidates_vectors)):
             # nascitanie suradnic
-            distance = get_distance([cor_x,cor_y],candidates_cor[s])
+            distance = get_distance([cor_x, cor_y], candidates_cor[s])
             sum_x += (1 / distance) * candidates_vectors[s][0]
             sum_y += (1 / distance) * candidates_vectors[s][1]            # # nascitanie menovatela
-            sum_distance += (1 /distance)
+            sum_distance += (1 / distance)
             flow_matrix[cor_x][cor_y][1] = [sum_x / sum_distance, sum_y / sum_distance]
             flow_matrix[cor_x][cor_y][0] = 0
-# -------------------------------------------------------------------------------------------------------------------
+
+
 def predicting_tracking(max_dist, pa_parallel, pa_vertical):
     tracks = []
     unresolved = []
@@ -907,8 +906,6 @@ def get_point_tracking(tracks):
 # -----------------------------------------------------------------------------------------------
 
 
-
-
 # -------------------------------------------------------------------------------------------------
 # #  ZISTIT OZAJSTNE ROZLISENIE OBRAZKU
 # frame_rate = 1/30
@@ -1034,8 +1031,6 @@ def get_point_tracking(tracks):
 # cv2.destroyAllWindows()
 # ========================================================================
 
-
-
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 print('------------------------------------------')
@@ -1043,41 +1038,38 @@ print('------------------------------------------')
 print('------------------------------------------')
 print('------------------------------------------')
 # file_name = input('File name for parse: [export_1280x720_3_30_radius_12.xml]')
-#file_name = 'export_1280x720_3_30_radius_12.xml'
+# file_name = 'export_1280x720_3_30_radius_12.xml'
 
 # file_name = 'tracks_1_300_model21032019_02-250And50.xml'
 file_name = 'tracks_1_300.xml'
 xml_dir = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\'
 frameCount = 300
-#file_name = 'anastroj_1280x720_3_30_12px.xml'
-#--toto nie, to je ine:
-# file_name = 'export_800x600_3_30_12px.xml'
 oldFormat = False
 x = 1280
 y = 720
 frame_rate = 1/30
 pixel_size = 1/3
 
-tracks = []
 unresolved_from_tracking = []
-mat =[]
+mat = []
 src_names = []
 
-if oldFormat == False:
-    tracks, mat, src_names = XMLParser.parseXMLData(xml_dir+file_name, False)
+if not oldFormat:
+    tracks, mat, src_names = XMLParser.parseXMLData(xml_dir + file_name, False)
 else:
-    mat = parse_xml(xml_dir+file_name)
+    mat = parse_xml(xml_dir + file_name)
+    tracks = []
 
 # zmaze niektore bunky z anastroja - z matice mat !!!!!!!!!!!!!!
 random.seed(20)
-#mat = remove_one_cell_from_all_frame(mat)
-#mat = remove_one_cell_from_all_frame(mat)
-#mat = remove_some_cell_random(mat, 50)
-#mat only 200 frames
+# mat = remove_one_cell_from_all_frame(mat)
+# mat = remove_one_cell_from_all_frame(mat)
+# mat = remove_some_cell_random(mat, 50)
+# mat only 200 frames
 mat = mat[:frameCount]
-if (str(len(tracks) == '0')):
+if str(len(tracks) == '0'):
     print('-----------------------------------------------------------------------------------------------')
-    #parameters = input('Parameters (dist a b) for simple tracking: [12,8,8]')
+    # parameters = input('Parameters (dist a b) for simple tracking: [12,8,8]')
     parameters = '12 8 8'
     parameters = parameters.split(' ')
     dist = int(parameters[0])
@@ -1086,8 +1078,8 @@ if (str(len(tracks) == '0')):
     tracks, unresolved_from_tracking = predicting_tracking(dist, a, b)
 
 flow_matrix = create_flow_matrix(int(x), int(y))
-calculate_flow_matrix()
-resolve_flow_matrix()
+calculate_flow_matrix(flow_matrix, tracks)
+resolve_flow_matrix(flow_matrix, unresolved_from_tracking)
 
 merged_tracks = tracks.copy()
 print('-----------------------------------------------------------------------------------------------')
@@ -1096,37 +1088,35 @@ print('-------------------------------------------------------------------------
 join_dist = '12'
 join = True
 
-#Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 10, 12)
+# Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 10, 12)
 
 
+while join:
+    adepts, original_tracks = simple_joining(merged_tracks, int(join_dist))
+    if len(adepts) == 0:
+        print('There is nothing to merge. ')
+        break
 
-while(join):
+    new_adepts = check_duplicity(adepts)
+    final = find_multiple_merge(new_adepts)
+    merged_tracks_w = merge_tracks(final, original_tracks, merged_tracks)
+    merged_tracks = merged_tracks_w.copy()
 
-  adepts, original_tracks = simple_joining(merged_tracks, int(join_dist))
-  if (len(adepts) == 0):
-    print('There is nothing to merge. ')
-    break
-
-  new_adepts = check_duplicity(adepts)
-  final = find_multiple_merge(new_adepts)
-  merged_tracks_w = merge_tracks(final,original_tracks,merged_tracks)
-  merged_tracks = merged_tracks_w.copy()
-
-  # repeat_join = input('Would you like to repeat joining with new set of tracks?')
-  repeat_join = 'y'
-  if (repeat_join == 'y' or repeat_join == 'yes' or repeat_join == 'Y' or repeat_join == 'YES'):
-      join = True
-  else:
-      join = False
+    # repeat_join = input('Would you like to repeat joining with new set of tracks?')
+    repeat_join = 'y'
+    if repeat_join == 'y' or repeat_join == 'yes' or repeat_join == 'Y' or repeat_join == 'YES':
+        join = True
+    else:
+        join = False
 print('-----------------------------------------------------------------------------------------------')
 # resolve_dist = input('Parameter (dist) for resolve points: [12]')
 resolve_dist = '12'
 resolve = True
 
 while resolve:
-  num = try_resolve_2(merged_tracks, mat, int(resolve_dist))
-  if num == 0:
-      break
+    num = try_resolve_2(merged_tracks, mat, int(resolve_dist))
+    if num == 0:
+        break
 
 '''new_merged, new_unresolved = try_resolve(merged_tracks, unresolved_from_tracking, int(resolve_dist)) #TODO mat pouzit
   if (len(new_unresolved) == len(unresolved_from_tracking)):
@@ -1145,32 +1135,32 @@ while resolve:
 print('calculating flow matrix')
 print('-----------------------------------------------------------------------------------------------')
 # file_xml = input('File name for export: ')
-#file_xml = "some_file.xml"
-#generate_tracks_xml_real(merged_tracks,file_xml,frame_rate, pixel_size)
+# file_xml = "some_file.xml"
+# generate_tracks_xml_real(merged_tracks,file_xml,frame_rate, pixel_size)
 print('-----------------------------------------------------------------------------------------------')
 
 # --- ***
 # save = input('1 Would you like to save as anastroj file?')
 save = 'n'
-if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
+if save == 'y' or save == 'yes' or save == 'Y' or save == 'YES':
     file_name = input('1 File name for anastroj export: ')
     XMLParser.save_as_anastroj_file(mat, tracks, src_names, xml_dir + file_name + '.xml')
 
-#FlowMatrix.calculate_flow_matrix(flow_matrix)
-#merged_tracks = Tracking.merge_tracks_flow_matrix(merged_tracks, flow_matrix, 5,20)
+# FlowMatrix.calculate_flow_matrix(flow_matrix)
+# merged_tracks = Tracking.merge_tracks_flow_matrix(merged_tracks, flow_matrix, 5,20)
 merged_tracks = Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 5, frameCount, 20)
 save = 'n'
-if (save == 'y' or save == 'yes' or save == 'Y' or save == 'YES'):
+if save == 'y' or save == 'yes' or save == 'Y' or save == 'YES':
     file_name = input('1 File name for anastroj export: ')
     XMLParser.save_as_anastroj_file(mat, merged_tracks, src_names, xml_dir + file_name + '.xml')
 
 show = 'y'
-if (show == 'y' or show == 'yes' or show == 'Y' or show == 'YES'):
+if show == 'y' or show == 'yes' or show == 'Y' or show == 'YES':
     name = input('1 File name for img:')
     img_tracks = np.zeros((int(y), int(x), 3), np.uint8)
     img = draw_tracks(merged_tracks, img_tracks)
 
-    cv2.imwrite('img\/'+name+'.png', img)
+    cv2.imwrite('img\\'+name+'.png', img)
     cv2.imshow('1 Final tracks from tracking', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()

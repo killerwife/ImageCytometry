@@ -7,7 +7,7 @@ import random
 import datetime, os
 
 
-def BoundingBoxmerge_tracks(track_array, unresolved_points, frame_difference, frameCount, radius=50):
+def merge_tracks(track_array, unresolved_points, frame_difference, frameCount, radius=50):
     """
     Hlavna funkcia ktora sluzi na mergovanie tras. Na zaciatku sa prerobia trasy z maticneho tvaru na objekty.
     Nasledne sa najdu kandidati na spojenie podla parametra difference a radius. Potom sa trasy spoja na zaklade
