@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
+from math import floor
 
 
 class BoundingBox(object):
@@ -16,6 +17,18 @@ class Image(object):
     def __init__(self):
         self.boundingBoxes = []
         self.filename = ""
+
+
+class TrackedBoundingBox(BoundingBox):
+    def __init__(self):
+        BoundingBox.__init__(self)
+        self.frameId = 0
+
+
+class Track(object):
+    def __init__(self):
+        self.trackId = -1
+        self.boundingBoxes = []
 
 
 def readXML(fileName, imageData):
@@ -70,12 +83,14 @@ def readXML(fileName, imageData):
             image.boundingBoxes.append(boundingBox)
         imageData.append(image)
 
+
 def replaceTrackIds(trackPairs, imageData):
     for image in imageData:
         for boundingBox in image.boundingBoxes:
             resultingTrackId = trackPairs.get(boundingBox.trackId)
             if resultingTrackId is not None and resultingTrackId != -1:
                 boundingBox.trackId = trackPairs.get(boundingBox.trackId)
+
 
 def connectTracks(imageDataFirst, imageDataSecond):
     jointImages = []
@@ -112,9 +127,9 @@ def connectTracks(imageDataFirst, imageDataSecond):
     return mergedImageData
 
 
-
 def getKey(filename):
     return int(filename[-9:-5])
+
 
 def writeXML(imageData, fileNameOutput):
     root = ET.Element('data')
@@ -140,12 +155,13 @@ def writeXML(imageData, fileNameOutput):
             if boundingBox.trackId != -1:
                 ET.SubElement(classNameXML, 'track_id').text = str(boundingBox.trackId)
             else:
-                ET.SubElement(classNameXML, 'track_id').text
+                ET.SubElement(classNameXML, 'track_id').text = ''
 
 
     xmlstr = minidom.parseString(ET.tostring(root, encoding="UTF-8")).toprettyxml(indent="  ", encoding='utf-8')
     with open(fileNameOutput, "wb") as f:
         f.write(xmlstr)
+
 
 def mergeXML():
     fileNameFirst = '../../XML/track_1_51_151_200.xml'
@@ -163,6 +179,79 @@ def mergeXML():
     #     print(data.filename)
     #     for boundingBox in data.boundingBoxes:
     #         print(boundingBox.trackId)
+
+
+def initTracks(annotatedData):
+    i = 0
+    tracks = {}
+    for image in annotatedData:
+        for boundingBox in image.boundingBoxes:
+            if boundingBox.trackId != -1:
+                trackedBoundingBox = TrackedBoundingBox()
+                trackedBoundingBox.trackId = boundingBox.trackId
+                trackedBoundingBox.x = boundingBox.x
+                trackedBoundingBox.y = boundingBox.y
+                trackedBoundingBox.height = boundingBox.height
+                trackedBoundingBox.width = boundingBox.width
+                trackedBoundingBox.frameId = i
+                if boundingBox.trackId not in tracks:
+                    track = Track()
+                    track.trackId = boundingBox.trackId
+                    tracks[boundingBox.trackId] = track
+
+                tracks[boundingBox.trackId].boundingBoxes.append(trackedBoundingBox)
+        i += 1
+    return tracks
+
+
+def parseXMLDataForTracks(annotatedData, loadTracks):
+    number = -1
+    tracks = []
+    src_names = []
+    mat = []
+    for image in annotatedData:  # image in images
+        print(image.filename)
+        src_names.append(image.filename)
+        number += 1
+        for boundingBox in image.boundingBoxes:  # boundingboxes in image
+            x_left = int(boundingBox.x)
+            y_left = int(boundingBox.y)
+            width = int(boundingBox.width)
+            height = int(boundingBox.height)
+            x = int((x_left + floor(width / 2)))
+            y = int((y_left + floor(height/2)))
+            track_id = boundingBox.trackId
+
+            if track_id != -1 and loadTracks is True:
+                if track_id >= len(tracks):
+                    # for pre tolko, kolko ich treba este pridat
+                    print('TI ', track_id)
+                    print('tracks: ', int(len(tracks)) + 1)
+                    count_to_add = track_id - int(len(tracks)) + 1
+                    for i in range(count_to_add):
+                        track = []
+                        tracks.append(track)
+                tracks[track_id].append([x, y, 1, number, width, height])
+
+            if number >= len(mat):
+                # for pre tolko, kolko ich treba este pridat
+                count_to_add = int(number) - int(len(mat)) + 1
+                for i in range(count_to_add):
+                    frame = []
+                    mat.append(frame)
+            if track_id == -1 or loadTracks is False:
+                mat[int(number)].append([x, y, 0, number, width, height])
+            else:
+                mat[int(number)].append([x, y, 1, number, width, height])
+
+    print('--- *************** TRACKS: ************************** ---')
+    print(tracks)
+    print('- - - - - - - - - - - - - - - - - - - - - - - - ')
+    print('--- ***************** MATRIX: ************************ ---')
+    print(mat)
+    print('- - - - - - - - - - - - - - - - - - - - - - - - ')
+    print(src_names)
+    return tracks, mat, src_names
 
 
 

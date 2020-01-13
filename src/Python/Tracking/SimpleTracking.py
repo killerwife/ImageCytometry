@@ -4,6 +4,9 @@ import math
 import random
 import Tracking, FlowMatrix
 import XMLParser
+import XMLRead
+import CellDataReader
+import Definitions
 
 def parse_xml(file):
     # naplnenie matice mat suradnicami bodov podla framov. Ak je zadama aj matrix- naplni sa "pomocna matica" (i,j) obsahuju cisla framov, v ktorych sa nachadzaju body so suradnicami i,j
@@ -260,107 +263,7 @@ def get_product(vector1, vector2):
     return vector1[0]*vector2[0] + vector1[1]*vector2[1]
 
 
-def create_flow_matrix(x, y):
-    # vytvorenie prazdnej matice o velkosti XxY
-    # print('Creating matrix...')
-    matrix = [[[-1, []] for j in range(y)] for i in range(x)]
-    return matrix
 
-
-def calculate_flow_matrix(flow_matrix, tracks):
-    print('calculating flow matrix')
-    points = 0
-    # vypocet vektorov pre body, ktore su v trackoch
-    for i in range(len(tracks)):
-        for j in range(len(tracks[i]) - 1):
-            points +=1
-            x1 = tracks[i][j][0]
-            x2 = tracks[i][j + 1][0]
-            x = x2 - x1
-            y1 = tracks[i][j][1]
-            y2 = tracks[i][j + 1][1]
-            y = y2 - y1
-            calculate_point(flow_matrix, x, y, tracks[i][j][0], tracks[i][j][1])
-
-        # nastavenie vektora posledneho bodu v tracku
-        points += 1
-        calculate_point(flow_matrix, x, y, tracks[i][-1][0], tracks[i][-1][1])
-
-
-def calculate_point(flow_matrix, vector_x, vector_y, cor_x, cor_y):
-    count = flow_matrix[cor_x][cor_y][0]
-
-    if count == -1:
-        flow_matrix[cor_x][cor_y][1] = [vector_x, vector_y]
-        flow_matrix[cor_x][cor_y][0] = 1
-    else:
-        # vypocet priemerneho vektora
-        avg_x = ((count * flow_matrix[cor_x][cor_y][1][0]) + vector_x) / (count + 1)
-        avg_y = ((count * flow_matrix[cor_x][cor_y][1][1]) + vector_y) / (count + 1)
-        flow_matrix[cor_x][cor_y][1] = [avg_x, avg_y]
-        flow_matrix[cor_x][cor_y][0] += 1
-
-
-def resolve_flow_matrix(flow_matrix, unresolved_from_tracking):
-    # doplnit o body, ktore nie su v trackoch
-    print('resolving flow matrix: calculating vector for not resolved points')
-    no = 0
-    for k in range(len(unresolved_from_tracking)):
-        x = unresolved_from_tracking[k][0]
-        y = unresolved_from_tracking[k][1]
-        if flow_matrix[x][y][0] == -1:
-            resolve_point(flow_matrix, x, y, 1)
-    #     else:
-    #         no += 1
-    # print('Pocet bodov, ktore sa nedopocitavaju: '+ str(no))
-    print('\tdone')
-
-
-def resolve_point(flow_matrix, cor_x, cor_y, iter):
-    max_x = len(flow_matrix) - 1
-    max_y = len(flow_matrix[0]) - 1
-
-    range_end = iter * 2 + 1
-    range_start = -1 * iter
-    candidates_vectors = []
-    candidates_cor = []
-    sum_x = 0
-    sum_y = 0
-    sum_distance = 0
-
-    # rozsah pre y
-    for j in range(range_start, (range_end + range_start)):
-        # pocitame cely riadok
-
-        if j == range_start or j == range_start * (-1):
-            for i in range(range_start, (range_end + range_start)):
-                if (max_x >= cor_x + i >= 0) and (max_y >= cor_y + j >= 0):  # overit suradnice
-                    # if ((cor_x + i <= max_x ) and (cor_y + j <= max_y  )):
-                    # print(str(cor_x + i )+ ' ' +str(cor_y + j))
-                    if flow_matrix[cor_x + i][cor_y + j][0] > 0:
-                        candidates_vectors.append(flow_matrix[cor_x + i][cor_y + j][1])
-                        candidates_cor.append([cor_x + i,cor_y + j])
-        else:
-            if max_x >= cor_x + range_start >= 0 and max_y >= cor_y + j >= 0:
-                if flow_matrix[cor_x + range_start][cor_y + j][0] > 0:
-                    candidates_vectors.append(flow_matrix[cor_x + range_start][cor_y + j][1])
-                    candidates_cor.append([cor_x + range_start,cor_y + j])
-                elif cor_x - range_start <= max_x and cor_y + j <= max_y:
-                    if flow_matrix[cor_x - range_start][cor_y + j][0] > 0:
-                        candidates_vectors.append(flow_matrix[cor_x - range_start][cor_y + j][1])
-                        candidates_cor.append([cor_x - range_start,cor_y + j])
-
-    if len(candidates_vectors) == 0:
-        resolve_point(flow_matrix, cor_x, cor_y, iter + 1)
-    else:
-        for s in range(len(candidates_vectors)):
-            # nascitanie suradnic
-            distance = get_distance([cor_x, cor_y], candidates_cor[s])
-            sum_x += (1 / distance) * candidates_vectors[s][0]
-            sum_y += (1 / distance) * candidates_vectors[s][1]            # # nascitanie menovatela
-            sum_distance += (1 / distance)
-            flow_matrix[cor_x][cor_y][1] = [sum_x / sum_distance, sum_y / sum_distance]
-            flow_matrix[cor_x][cor_y][0] = 0
 
 
 def predicting_tracking(max_dist, pa_parallel, pa_vertical):
@@ -1043,8 +946,10 @@ print('------------------------------------------')
 # file_name = 'tracks_1_300_model21032019_02-250And50.xml'
 file_name = 'tracks_1_300.xml'
 xml_dir = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\'
+flowMatrixFileName = ''
 frameCount = 300
 oldFormat = False
+flowMatrixSimulation = False
 x = 1280
 y = 720
 frame_rate = 1/30
@@ -1055,7 +960,9 @@ mat = []
 src_names = []
 
 if not oldFormat:
-    tracks, mat, src_names = XMLParser.parseXMLData(xml_dir + file_name, False)
+    annotatedData = []
+    XMLRead.readXML(xml_dir + file_name, annotatedData)
+    tracks, mat, src_names = XMLRead.parseXMLDataForTracks(annotatedData, False)
 else:
     mat = parse_xml(xml_dir + file_name)
     tracks = []
@@ -1077,9 +984,13 @@ if str(len(tracks) == '0'):
     b = int(parameters[2])
     tracks, unresolved_from_tracking = predicting_tracking(dist, a, b)
 
-flow_matrix = create_flow_matrix(int(x), int(y))
-calculate_flow_matrix(flow_matrix, tracks)
-resolve_flow_matrix(flow_matrix, unresolved_from_tracking)
+if flowMatrixSimulation:
+    flowMatrixNew = CellDataReader.FlowMatrix(int(x), int(y))
+    flowMatrixNew.readFlowMatrix(Definitions.DATA_ROOT_DIRECTORY + Definitions.FLOW_MATRIX_FILE)
+    flow_matrix = flowMatrixNew.convertToOldArrayType()
+else:
+    flowMatrixCreator = CellDataReader.FlowMatrix(int(x), int(y))
+    flow_matrix = flowMatrixCreator.oldFlowMatrix(tracks, unresolved_from_tracking)
 
 merged_tracks = tracks.copy()
 print('-----------------------------------------------------------------------------------------------')

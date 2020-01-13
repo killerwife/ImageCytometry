@@ -41,58 +41,6 @@ def parse_xml(file):
     print('\tdone')
     return mat
 
-
-def parseXMLData(filename, loadTracks):
-    annotatedData = []
-    XMLRead.readXML(filename, annotatedData)
-    number = -1
-    tracks = []
-    src_names = []
-    mat = []
-    for image in annotatedData: # image in images
-        print(image.filename)
-        src_names.append(image.filename)
-        number += 1
-        for boundingBox in image.boundingBoxes: # boundingboxes in image
-            x_left = int(boundingBox.x)
-            y_left = int(boundingBox.y)
-            width = int(boundingBox.width)
-            height = int(boundingBox.height)
-            x = int((x_left + floor(width / 2)))
-            y = int((y_left + floor(height/2)))
-            track_id = boundingBox.trackId
-
-            if track_id != -1:
-                if track_id >= len(tracks):
-                    # for pre tolko, kolko ich treba este pridat
-                    print('TI ', track_id)
-                    print('tracks: ', int(len(tracks)) + 1)
-                    count_to_add = track_id - int(len(tracks)) + 1
-                    for i in range(count_to_add):
-                        track = []
-                        tracks.append(track)
-                tracks[track_id].append([x, y, 1, number, width, height])
-
-            if number >= len(mat):
-                # for pre tolko, kolko ich treba este pridat
-                count_to_add = int(number) - int(len(mat)) + 1
-                for i in range(count_to_add):
-                    frame = []
-                    mat.append(frame)
-            if track_id == -1 or loadTracks == False:
-                mat[int(number)].append([x, y, 0, number, width, height])
-            else:
-                mat[int(number)].append([x, y, 1, number, width, height])
-
-    print('--- *************** TRACKS: ************************** ---')
-    print(tracks)
-    print('- - - - - - - - - - - - - - - - - - - - - - - - ')
-    print('--- ***************** MATRIX: ************************ ---')
-    print(mat)
-    print('- - - - - - - - - - - - - - - - - - - - - - - - ')
-    print(src_names)
-    return tracks, mat, src_names
-
 # TODO pridat nezaradene body
 # ------------------------------------------------------------------------------------------
 def save_as_anastroj_file(mat, tracks, src_names, file_name):
