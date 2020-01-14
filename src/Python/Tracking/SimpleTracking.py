@@ -411,10 +411,14 @@ def simple_joining(tracks,threshold):
 
     # konce porovnavame so zaciatkami
     for last in range(len(tracks)):
+        if not tracks[last]:
+            continue
         candidates = []
         favorite = [-1]
         best_match = threshold
         for first in range(len(tracks)):
+            if not tracks[first]:
+                continue
             if (last == first):
                 continue
             # prvotna kontrola spajania trackov: cisla framov.
@@ -425,18 +429,18 @@ def simple_joining(tracks,threshold):
                 if(can_join(last, first, tracks )):
                     candidates.append(first)
 
-        if(len(candidates)>0):
+        if len(candidates) > 0:
             # spomedzi kandidatov sa vyberie favorita
             vector = flow_matrix[tracks[last][-1][0]][tracks[last][-1][1]][1]
             point = get_expected_point(tracks[last][-1], vector[0], vector[1])
             # print('candidates for '+str(last)+': '+str(candidates))
             for c in range(len(candidates)):
-                distance = get_distance(point,tracks[candidates[c]][0])
-                if( distance < best_match):
+                distance = get_distance(point, tracks[candidates[c]][0])
+                if distance < best_match:
                     best_match = distance
                     favorite = [last, candidates[c], distance]
 
-            if(favorite != [-1]):
+            if favorite != [-1]:
                 pairs.append(favorite)
             else:
                 original_tracks.append(last)
@@ -449,7 +453,7 @@ def simple_joining(tracks,threshold):
 
     # treba z originalov vyhodit tracky ktore sa nakoniec stali koncami
     for o in range(len(pairs)):
-        if(original_tracks.count(pairs[o][1])>0):
+        if original_tracks.count(pairs[o][1]) > 0:
             # print('odstranuje sa '+str(pairs[o][1]))
             original_tracks.remove(pairs[o][1])
 
@@ -630,6 +634,8 @@ def find_multiple_merge(adepts):
 def try_resolve_2(tracks, matrix, threshold):
     num = 0
     for track_index in range(len(tracks)):
+        if not tracks[track_index]:
+            continue
         candidates_start = []
         candidates_end = []
         favorite_start = None
@@ -949,7 +955,8 @@ xml_dir = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\'
 flowMatrixFileName = ''
 frameCount = 300
 oldFormat = False
-flowMatrixSimulation = False
+flowMatrixSimulation = True
+evalAnnotatedTracks = False
 x = 1280
 y = 720
 frame_rate = 1/30
@@ -962,7 +969,7 @@ src_names = []
 if not oldFormat:
     annotatedData = []
     XMLRead.readXML(xml_dir + file_name, annotatedData)
-    tracks, mat, src_names = XMLRead.parseXMLDataForTracks(annotatedData, False)
+    tracks, mat, src_names = XMLRead.parseXMLDataForTracks(annotatedData, evalAnnotatedTracks)
 else:
     mat = parse_xml(xml_dir + file_name)
     tracks = []
@@ -974,60 +981,61 @@ random.seed(20)
 # mat = remove_some_cell_random(mat, 50)
 # mat only 200 frames
 mat = mat[:frameCount]
-if str(len(tracks) == '0'):
-    print('-----------------------------------------------------------------------------------------------')
-    # parameters = input('Parameters (dist a b) for simple tracking: [12,8,8]')
-    parameters = '12 8 8'
-    parameters = parameters.split(' ')
-    dist = int(parameters[0])
-    a = int(parameters[1])
-    b = int(parameters[2])
-    tracks, unresolved_from_tracking = predicting_tracking(dist, a, b)
+if not evalAnnotatedTracks:
+    if len(tracks) == 0:
+        print('-----------------------------------------------------------------------------------------------')
+        # parameters = input('Parameters (dist a b) for simple tracking: [12,8,8]')
+        parameters = '12 8 8'
+        parameters = parameters.split(' ')
+        dist = int(parameters[0])
+        a = int(parameters[1])
+        b = int(parameters[2])
+        tracks, unresolved_from_tracking = predicting_tracking(dist, a, b)
 
-if flowMatrixSimulation:
-    flowMatrixNew = CellDataReader.FlowMatrix(int(x), int(y))
-    flowMatrixNew.readFlowMatrix(Definitions.DATA_ROOT_DIRECTORY + Definitions.FLOW_MATRIX_FILE)
-    flow_matrix = flowMatrixNew.convertToOldArrayType()
-else:
-    flowMatrixCreator = CellDataReader.FlowMatrix(int(x), int(y))
-    flow_matrix = flowMatrixCreator.oldFlowMatrix(tracks, unresolved_from_tracking)
-
-merged_tracks = tracks.copy()
-print('-----------------------------------------------------------------------------------------------')
-
-# join_dist = input('Parameter (dist) for joining tracks: [12]')
-join_dist = '12'
-join = True
-
-# Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 10, 12)
-
-
-while join:
-    adepts, original_tracks = simple_joining(merged_tracks, int(join_dist))
-    if len(adepts) == 0:
-        print('There is nothing to merge. ')
-        break
-
-    new_adepts = check_duplicity(adepts)
-    final = find_multiple_merge(new_adepts)
-    merged_tracks_w = merge_tracks(final, original_tracks, merged_tracks)
-    merged_tracks = merged_tracks_w.copy()
-
-    # repeat_join = input('Would you like to repeat joining with new set of tracks?')
-    repeat_join = 'y'
-    if repeat_join == 'y' or repeat_join == 'yes' or repeat_join == 'Y' or repeat_join == 'YES':
-        join = True
+    if flowMatrixSimulation:
+        flowMatrixNew = CellDataReader.FlowMatrix(int(x), int(y))
+        flowMatrixNew.readFlowMatrix(Definitions.DATA_ROOT_DIRECTORY + Definitions.FLOW_MATRIX_FILE)
+        flow_matrix = flowMatrixNew.convertToOldArrayType()
     else:
-        join = False
-print('-----------------------------------------------------------------------------------------------')
-# resolve_dist = input('Parameter (dist) for resolve points: [12]')
-resolve_dist = '12'
-resolve = True
+        flowMatrixCreator = CellDataReader.FlowMatrix(int(x), int(y))
+        flow_matrix = flowMatrixCreator.oldFlowMatrix(tracks, unresolved_from_tracking)
 
-while resolve:
-    num = try_resolve_2(merged_tracks, mat, int(resolve_dist))
-    if num == 0:
-        break
+    merged_tracks = tracks.copy()
+    print('-----------------------------------------------------------------------------------------------')
+
+    # join_dist = input('Parameter (dist) for joining tracks: [12]')
+    join_dist = '12'
+    join = True
+
+    # Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 10, 12)
+
+
+    while join:
+        adepts, original_tracks = simple_joining(merged_tracks, int(join_dist))
+        if len(adepts) == 0:
+            print('There is nothing to merge. ')
+            break
+
+        new_adepts = check_duplicity(adepts)
+        final = find_multiple_merge(new_adepts)
+        merged_tracks_w = merge_tracks(final, original_tracks, merged_tracks)
+        merged_tracks = merged_tracks_w.copy()
+
+        # repeat_join = input('Would you like to repeat joining with new set of tracks?')
+        repeat_join = 'y'
+        if repeat_join == 'y' or repeat_join == 'yes' or repeat_join == 'Y' or repeat_join == 'YES':
+            join = True
+        else:
+            join = False
+    print('-----------------------------------------------------------------------------------------------')
+    # resolve_dist = input('Parameter (dist) for resolve points: [12]')
+    resolve_dist = '12'
+    resolve = True
+
+    while resolve:
+        num = try_resolve_2(merged_tracks, mat, int(resolve_dist))
+        if num == 0:
+            break
 
 '''new_merged, new_unresolved = try_resolve(merged_tracks, unresolved_from_tracking, int(resolve_dist)) #TODO mat pouzit
   if (len(new_unresolved) == len(unresolved_from_tracking)):
@@ -1059,13 +1067,17 @@ if save == 'y' or save == 'yes' or save == 'Y' or save == 'YES':
 
 # FlowMatrix.calculate_flow_matrix(flow_matrix)
 # merged_tracks = Tracking.merge_tracks_flow_matrix(merged_tracks, flow_matrix, 5,20)
-merged_tracks = Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 5, frameCount, 20)
+if not evalAnnotatedTracks:
+    merged_tracks = Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 5, frameCount, 20)
+else:
+    tracksOtherFormat = XMLRead.initTracks(annotatedData)
+    Tracking.print_info(tracksOtherFormat, len(annotatedData))
 save = 'n'
 if save == 'y' or save == 'yes' or save == 'Y' or save == 'YES':
     file_name = input('1 File name for anastroj export: ')
     XMLParser.save_as_anastroj_file(mat, merged_tracks, src_names, xml_dir + file_name + '.xml')
 
-show = 'y'
+show = 'n'
 if show == 'y' or show == 'yes' or show == 'Y' or show == 'YES':
     name = input('1 File name for img:')
     img_tracks = np.zeros((int(y), int(x), 3), np.uint8)

@@ -157,7 +157,6 @@ def writeXML(imageData, fileNameOutput):
             else:
                 ET.SubElement(classNameXML, 'track_id').text = ''
 
-
     xmlstr = minidom.parseString(ET.tostring(root, encoding="UTF-8")).toprettyxml(indent="  ", encoding='utf-8')
     with open(fileNameOutput, "wb") as f:
         f.write(xmlstr)
@@ -252,6 +251,3 @@ def parseXMLDataForTracks(annotatedData, loadTracks):
     print('- - - - - - - - - - - - - - - - - - - - - - - - ')
     print(src_names)
     return tracks, mat, src_names
-
-
-

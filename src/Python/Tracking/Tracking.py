@@ -483,9 +483,13 @@ def print_info(tracks, frameCount):
     pocet_tras = len(tracks)
     print('Pocet tras=' + str(pocet_tras))
     sum_len = 0
-    for track in tracks:
-        sum_len += len(track.bounding_boxes)
-    avg = sum_len/pocet_tras
+    if type(tracks) is dict:
+        for key, track in tracks.items():
+            sum_len += len(track.boundingBoxes)
+    else:
+        for track in tracks:
+            sum_len += len(track.bounding_boxes)
+    avg = sum_len / pocet_tras
     print('Avarage track=' + str(avg))
 
 def angle(v1):

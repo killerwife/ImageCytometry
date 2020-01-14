@@ -2,6 +2,7 @@ import cv2
 import Definitions
 import math
 
+
 class CellPosition(object):
     def __init__(self):
         self.id = 0
@@ -10,7 +11,8 @@ class CellPosition(object):
         self.z = 0
 
     def print(self):
-        print('ID: ' + str(self.id) + ' X: ' + str(self.x) + ' Y: ' + str(self.y)+ ' Unk: ' + str(self.z))
+        print('ID: ' + str(self.id) + ' X: ' + str(self.x) + ' Y: ' + str(self.y) + ' Unk: ' + str(self.z))
+
 
 class CellData(object):
     def __init__(self):
@@ -65,6 +67,9 @@ class FlowMatrix(object):
                 entry = FlowMatrixData3D()
                 entry.x = int(lineSplit[0])
                 entry.y = int(lineSplit[1])
+                # stupid flow matrix in file can be bigger
+                if entry.x >= (self.width / 3) or entry.y >= (self.height / 3):
+                    continue
                 entry.z = int(lineSplit[2])
                 # conversion of units from 3ms
                 entry.velocityX = float(lineSplit[3]) * 1000
@@ -72,29 +77,38 @@ class FlowMatrix(object):
                 entry.velocityZ = float(lineSplit[5]) * 1000
                 newData.append(entry)
 
-        # get all data for each point
+        # get all data for each point - we only have data for every third
         temp3DArray = [[[] for x in range(self.width)] for y in range(self.height)]
         for data in newData:
-            temp3DArray[entry.y][entry.x].append(data)
+            temp3DArray[data.y * 3][data.x * 3].append(data)
+            temp3DArray[data.y * 3 + 1][data.x * 3].append(data)
+            temp3DArray[data.y * 3 + 2][data.x * 3].append(data)
+            temp3DArray[data.y * 3][data.x * 3 + 1].append(data)
+            temp3DArray[data.y * 3 + 1][data.x * 3 + 1].append(data)
+            temp3DArray[data.y * 3 + 2][data.x * 3 + 1].append(data)
+            temp3DArray[data.y * 3][data.x * 3 + 2].append(data)
+            temp3DArray[data.y * 3 + 1][data.x * 3 + 2].append(data)
+            temp3DArray[data.y * 3 + 2][data.x * 3 + 2].append(data)
 
-        # calculate 2D flow matrix
-        for row in temp3DArray:
-            for column in row:
+        # calculate 2D flow matrix - iterate over indices cos of incomplete data in columns - just fill 0
+        for rowIter in range(len(temp3DArray)):
+            for colIter in range(len(temp3DArray[rowIter])):
                 maxVelocityX = 0
                 maxVelocityY = 0
-                for pointData in column:
+                for pointData in temp3DArray[rowIter][colIter]:
                     if maxVelocityX < pointData.velocityX:
                         maxVelocityX = pointData.velocityX
                     if maxVelocityY < pointData.velocityY:
                         maxVelocityY = pointData.velocityY
-                self.data[column[0].y][column[0].x] =\
-                    FlowMatrixData2D(column[0].x, column[0].y, maxVelocityX, maxVelocityY)
+                self.data[rowIter][colIter] =\
+                    FlowMatrixData2D(colIter, rowIter, maxVelocityX, maxVelocityY)
 
     def convertToOldArrayType(self):
-        output = [[[1, []] for j in range(self.width)] for i in range(self.height)]
+        output = [[[1, []] for j in range(self.height)] for i in range(self.width)]
         for row in self.data:
-            for column in self.data:
-                output[column.y][column.x][1] = [column.velocityX, column.velocityY]
+            for column in row:
+                output[column.x][column.y][1] = [column.velocityX, column.velocityY]
+        return output
 
     def oldFlowMatrix(self, tracks, unresolved_from_tracking):
         def get_distance(a, b):
@@ -156,12 +170,12 @@ class FlowMatrix(object):
             # print('Pocet bodov, ktore sa nedopocitavaju: '+ str(no))
             print('\tdone')
 
-        def resolve_point(flow_matrix, cor_x, cor_y, iter):
+        def resolve_point(flow_matrix, cor_x, cor_y, index):
             max_x = len(flow_matrix) - 1
             max_y = len(flow_matrix[0]) - 1
 
-            range_end = iter * 2 + 1
-            range_start = -1 * iter
+            range_end = index * 2 + 1
+            range_start = -1 * index
             candidates_vectors = []
             candidates_cor = []
             sum_x = 0
@@ -191,7 +205,7 @@ class FlowMatrix(object):
                                 candidates_cor.append([cor_x - range_start, cor_y + j])
 
             if len(candidates_vectors) == 0:
-                resolve_point(flow_matrix, cor_x, cor_y, iter + 1)
+                resolve_point(flow_matrix, cor_x, cor_y, index + 1)
             else:
                 for s in range(len(candidates_vectors)):
                     # nascitanie suradnic
@@ -259,8 +273,8 @@ def main():
     matrix.readFlowMatrix(Definitions.DATA_ROOT_DIRECTORY + Definitions.FLOW_MATRIX_FILE)
 
 
-if __name__== "__main__":
-  main()
+if __name__ == "__main__":
+    main()
 
 
 
