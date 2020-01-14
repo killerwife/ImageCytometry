@@ -1,10 +1,4 @@
 import tensorflow as tf
-import time
-from datetime import timedelta
-import math
-import random
-import numpy as np
-import os
 import Dataset
 
 def create_weights(shape):
@@ -84,6 +78,7 @@ session = tf.Session()
 
 dataset = Dataset.Dataset()
 trackingDataset = dataset.loadFromDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\trainTracking250.record')
+outputName = '.\\trainingOutput\\trackingNeuralNetwork'
 
 x = tf.placeholder(tf.float32, shape=[None, img_size, img_size, num_channels], name='x')
 
@@ -202,17 +197,16 @@ def train(num_iteration, trackingDataset):
         feed_dict_val = {x: resultDatasetValidate['x_batch'], y_true: resultDatasetValidate['y_true']}
 
         session.run(optimizer, feed_dict=feed_dict_tr)
-        print('Iteration: ' + str(i))
-        if i % 50 == 0:
+        if i % 400 == 0:
             val_loss = session.run(cost, feed_dict=feed_dict_val)
             epoch = int(i / int(validationStart / batch_size))
 
             show_progress(epoch, feed_dict_tr, feed_dict_val, val_loss)
-            saver.save(session, '.\\trainingOutput\\trackingNeuralNetwork')
+            saver.save(session, outputName)
 
     total_iterations += num_iteration
 
-train(num_iteration=5000, trackingDataset=trackingDataset)
+train(num_iteration=10000, trackingDataset=trackingDataset)
 
 
 

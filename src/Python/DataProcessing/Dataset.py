@@ -3,6 +3,8 @@ import XMLRead
 import cv2
 import numpy as np
 import CellDataReader
+import os
+import Definitions
 from object_detection.utils import dataset_util
 
 class DatasetSegment(object):
@@ -216,7 +218,13 @@ if __name__ == "__main__":
     annotatedData = []
     XMLRead.readXML('C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\tracks_1_300.xml', annotatedData)
     tracks, mat, src_names = XMLRead.parseXMLDataForTracks(annotatedData, True)
-    flowMatrix = CellDataReader.FlowMatrix(1280, 720)
-    unresolved_from_tracking = []
-    oldFormatFlowMatrix = flowMatrix.oldFlowMatrix(tracks, unresolved_from_tracking)
-    dataset.createTrackingDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\', annotatedData, 'Tracking250', oldFormatFlowMatrix)
+    # flowMatrix = CellDataReader.FlowMatrix(1280, 720)
+    # unresolved_from_tracking = []
+    # flow_matrix = flowMatrix.oldFlowMatrix(tracks, unresolved_from_tracking)
+    flowMatrixNew = CellDataReader.FlowMatrix(1280, 720)
+    flowMatrixNew.readFlowMatrix(Definitions.DATA_ROOT_DIRECTORY + Definitions.FLOW_MATRIX_FILE)
+    flow_matrix = flowMatrixNew.convertToOldArrayType()
+    newDir = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking'
+    if not os.path.exists(newDir):
+        os.makedirs(newDir)
+    dataset.createTrackingDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\', annotatedData, 'Tracking250SimulationMatrix', flow_matrix)
