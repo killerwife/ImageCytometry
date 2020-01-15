@@ -3,6 +3,7 @@ import numpy as np
 import os,glob,cv2
 import Dataset
 import math
+import sys
 
 # Step-1: Recreate the network graph. At this step only graph is created.
 saver = tf.train.import_meta_graph('./trainingOutput/trackingNeuralNetwork.meta')
@@ -41,6 +42,16 @@ error = 0
 for i in range(len(result)):
     error += abs(result[i][0] - outputData[i][0]) + abs(result[i][1] - outputData[i][1])
 
+np.set_printoptions(threshold=sys.maxsize)
 print('Error: ' + str(error))
+
+# for l in range(5):
+#     for i in range(len(inputData[0])):
+#         for k in range(len(inputData[0][i])):
+#             print(inputData[0][i][k][l], end=" ")
+#         print()
+#     print()
+
 for i in range(len(result)):
     print('Original data: ' + str(outputData[i]) + ' Predicted data: ' + str(result[i]))
+

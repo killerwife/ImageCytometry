@@ -15,9 +15,11 @@ class DatasetSegment(object):
         self.endBoundary = endBoundary
 
 class TrackingDataset(object):
-    def __init__(self, width, height, features, response):
+    def __init__(self, width, height, x, y, features, response):
         self.width = width
         self.height = height
+        self.x = x
+        self.y = y
         self.features = features
         self.response = response
 
@@ -101,10 +103,12 @@ class Dataset(object):
         writers[1].close()
 
     # tracking
-    def createTrackingTFRecord(self, datavector, width, height, response):
+    def createTrackingTFRecord(self, datavector, width, height, x, y, response):
         tf_example = tf.train.Example(features=tf.train.Features(feature={
             'data/height': dataset_util.int64_feature(height),
             'data/width': dataset_util.int64_feature(width),
+            'data/x': dataset_util.int64_feature(x),
+            'data/y': dataset_util.int64_feature(y),
             'data/features': dataset_util.float_list_feature(datavector.flatten()),
             'data/response': dataset_util.float_list_feature(response),
         }))
@@ -116,58 +120,105 @@ class Dataset(object):
         entries = 0
         writers.append(tf.python_io.TFRecordWriter(folderPath + 'train' + recordName + '.record'))
         writers.append(tf.python_io.TFRecordWriter(folderPath + 'eval' + recordName + '.record'))
-        array = np.zeros((60, 60, 5), np.float32)  # index 0 - x velocity index 1 y velocity index 2 other cells
+        array = np.zeros((60, 60, 9), np.float32)  # index 0 - x velocity index 1 y velocity index 2 other cells
+
+        # velocities = np.zeros((720, 1280, 2), np.float32)
+        # for currentKey, currentTrack in tracks.items():
+        #     for curBoxIndex in range(len(currentTrack.boundingBoxes)):
+        #         boundingBox = currentTrack.boundingBoxes[curBoxIndex]
+        #         if curBoxIndex > 0:
+        #             curPrevBoundingBox = currentTrack.boundingBoxes[curBoxIndex - 1]
+        #             fillingVelocityX = (boundingBox.x - curPrevBoundingBox.x) / float(
+        #                 abs(curPrevBoundingBox.frameId - boundingBox.frameId))
+        #             fillingVelocityY = (boundingBox.y - curPrevBoundingBox.y) / float(
+        #                 abs(curPrevBoundingBox.frameId - boundingBox.frameId))
+        #             for indexY in range(boundingBox.height):
+        #                 for indexX in range(boundingBox.width):
+        #                     velocities[boundingBox.y + indexY][boundingBox.x + indexX][0] = (velocities[boundingBox.y + indexY][boundingBox.x + indexX][0] + fillingVelocityX) / 2
+        #                     velocities[boundingBox.y + indexY][boundingBox.x + indexX][1] = (velocities[boundingBox.y + indexY][boundingBox.x + indexX][1] + fillingVelocityY) / 2
+
+        print('Calculated velocities')
         # index 3 flow matrix x velocity index 4 flow matrix y velocity
         for key, track in tracks.items():
             boundingBoxIndex = 0
             for trackedBoundingBox in track.boundingBoxes:
-                if boundingBoxIndex == 0:
+                if boundingBoxIndex < 4:
                     boundingBoxIndex += 1
                     continue
                 if boundingBoxIndex + 1 == len(track.boundingBoxes):
                     break
                 array.fill(0)
                 # calculate velocity
+                def calculateVelocity(leftBox, rightBox):
+                    velocityX = (rightBox.x - leftBox.x)\
+                            / float(abs(leftBox.frameId - rightBox.frameId))
+                    velocityY = (rightBox.y - leftBox.y)\
+                            / float(abs(leftBox.frameId - rightBox.frameId))
+                    return velocityX, velocityY
+                def setPreviousVelocity(leftBox, rightBox, array, middleX, middleY, index):
+                    prevVelocityX, prevVelocityY = calculateVelocity(leftBox, rightBox)
+                    sameFrameMiddleX = int(rightBox.x + rightBox.width / 2)
+                    sameFrameMiddleY = int(rightBox.y + rightBox.height / 2)
+                    indexX = sameFrameMiddleX - (middleX - 30)
+                    if indexX < 0 or indexX > 59:
+                        print('Outside of bounds : ' + str(indexX) + ' VelocityX: ' + str(prevVelocityX) + ' VelocityY: ' + str(prevVelocityY))
+                        return
+                    indexY = sameFrameMiddleY - (middleY - 30)
+                    if indexY < 0 or indexY > 59:
+                        print('Outside of bounds : ' + str(indexY) + ' VelocityX: ' + str(prevVelocityX) + ' VelocityY: ' + str(prevVelocityY))
+                        return
+                    array[indexY][indexX][index] = prevVelocityX
+                    array[indexY][indexX][index + 1] = prevVelocityY
                 previousBoundingBox = track.boundingBoxes[boundingBoxIndex - 1]
-                currentVelocityX = (trackedBoundingBox.x - previousBoundingBox.x)\
-                            / float(abs(previousBoundingBox.frameId - trackedBoundingBox.frameId))
-                currentVelocityY = (trackedBoundingBox.y - previousBoundingBox.y)\
-                            / float(abs(previousBoundingBox.frameId - trackedBoundingBox.frameId))
+                currentVelocityX, currentVelocityY = calculateVelocity(previousBoundingBox, trackedBoundingBox)
                 nextBoundingBox = track.boundingBoxes[boundingBoxIndex + 1]
-                futureVelocityX = (nextBoundingBox.x - trackedBoundingBox.x)\
-                            / float(abs(trackedBoundingBox.frameId - nextBoundingBox.frameId))
-                futureVelocityY = (nextBoundingBox.y - trackedBoundingBox.y)\
-                            / float(abs(trackedBoundingBox.frameId - nextBoundingBox.frameId))
+                futureVelocityX, futureVelocityY = calculateVelocity(trackedBoundingBox, nextBoundingBox)
                 array[30][30][0] = currentVelocityX
                 array[30][30][1] = currentVelocityY
 
                 # fill other cells
-                middleX = trackedBoundingBox.x + trackedBoundingBox.width / 2
-                middleY = trackedBoundingBox.y + trackedBoundingBox.height / 2
-                for sameFrameBoundingBox in annotatedData[trackedBoundingBox.frameId].boundingBoxes:
+                middleX = int(trackedBoundingBox.x + trackedBoundingBox.width / 2)
+                middleY = int(trackedBoundingBox.y + trackedBoundingBox.height / 2)
+                # for i in range(60):
+                #     for k in range(60):
+                #         array[i][k][2] = velocities[middleY - 30 + i][middleX - 30 + k][0]
+                #         array[i][k][3] = velocities[middleY - 30 + i][middleX - 30 + k][1]
+                setPreviousVelocity(track.boundingBoxes[boundingBoxIndex - 2],
+                                    track.boundingBoxes[boundingBoxIndex - 1], array, middleX, middleY, 2)
+                setPreviousVelocity(track.boundingBoxes[boundingBoxIndex - 3],
+                                    track.boundingBoxes[boundingBoxIndex - 2], array, middleX, middleY, 4)
+                setPreviousVelocity(track.boundingBoxes[boundingBoxIndex - 4],
+                                    track.boundingBoxes[boundingBoxIndex - 3], array, middleX, middleY, 6)
+
+                frameDiff = track.boundingBoxes[boundingBoxIndex - 4].frameId - trackedBoundingBox.frameId
+                if frameDiff > 4:
+                    print('Frame diff: ' + str(frameDiff))
+
+                for sameFrameBoundingBox in annotatedData[trackedBoundingBox.frameId + 1].boundingBoxes:
                     sameFrameMiddleX = sameFrameBoundingBox.x + sameFrameBoundingBox.width / 2
                     if middleX - 31 < sameFrameMiddleX < middleX + 30:
                         sameFrameMiddleY = sameFrameBoundingBox.y + sameFrameBoundingBox.height / 2
                         if middleY - 31 < sameFrameMiddleY < middleY + 30:
-                            array[int(sameFrameMiddleY - (middleY - 30))][int(sameFrameMiddleX - (middleX - 30))][2] = 1
+                            array[int(sameFrameMiddleY - (middleY - 30))][int(sameFrameMiddleX - (middleX - 30))][8] = 1
 
                 # fill flow matrix
-                for i in range(0, 59):
-                    if 0 <= trackedBoundingBox.y - 30 + i < len(flowmatrix):
-                        for k in range(0, 59):
-                            if 0 <= trackedBoundingBox.x - 30 + k < len(flowmatrix[0]):
-                                data = flowmatrix[trackedBoundingBox.y - 30 + i][trackedBoundingBox.x - 30 + k]
-                                if data[0] == -1:
-                                    array[i][k][3] = 0
-                                    array[i][k][4] = 0
-                                else:
-                                    array[i][k][3] = data[1][0]
-                                    array[i][k][4] = data[1][1]
+                # for i in range(0, 59):
+                #     if 0 <= trackedBoundingBox.x - 30 + i < len(flowmatrix):
+                #         for k in range(0, 59):
+                #             if 0 <= trackedBoundingBox.y - 30 + k < len(flowmatrix[0]):
+                #                 data = flowmatrix[trackedBoundingBox.x - 30 + i][trackedBoundingBox.y - 30 + k]
+                #                 if data[0] == -1:
+                #                     array[k][i][3] = 0
+                #                     array[k][i][4] = 0
+                #                 else:
+                #                     array[k][i][3] = data[1][0]
+                #                     array[k][i][4] = data[1][1]
 
-                tf_example = self.createTrackingTFRecord(array, 60, 60, [futureVelocityX, futureVelocityY])
+                tf_example = self.createTrackingTFRecord(array, 60, 60, trackedBoundingBox.x, trackedBoundingBox.y, [futureVelocityX, futureVelocityY])
                 writers[0].write(tf_example.SerializeToString())
                 boundingBoxIndex += 1
                 entries += 1
+            print('Processed track: ' + str(key))
         print('Saved ' + str(entries) + ' to dataset.')
 
     def loadFromDataset(self, filename):
@@ -175,7 +226,9 @@ class Dataset(object):
         feature_description = {
             'data/height': tf.FixedLenFeature([], tf.int64),
             'data/width': tf.FixedLenFeature([], tf.int64),
-            'data/features': tf.FixedLenFeature([60, 60, 5], tf.float32),
+            'data/x': tf.FixedLenFeature([], tf.int64),
+            'data/y': tf.FixedLenFeature([], tf.int64),
+            'data/features': tf.FixedLenFeature([60, 60, 9], tf.float32),
             'data/response': tf.FixedLenFeature([2], tf.float32),
         }
 
@@ -185,6 +238,8 @@ class Dataset(object):
 
         heights = []
         widths = []
+        xs = []
+        ys = []
         featuresList = []
         responsesList = []
         dataset = record.map(_parse_function)
@@ -197,6 +252,8 @@ class Dataset(object):
                     data = sess.run(next_image_data)
                     heights.append(data['data/height'])
                     widths.append(data['data/width'])
+                    xs.append(data['data/x'])
+                    ys.append(data['data/y'])
                     featuresList.append(data['data/features'])
                     responsesList.append(data['data/response'])
             except:
@@ -210,14 +267,14 @@ class Dataset(object):
         features = np.stack(featuresList)
         responses = np.stack(responsesList)
 
-        return TrackingDataset(widths, heights, features, responses)
+        return TrackingDataset(widths, heights, xs, ys, features, responses)
 
 
 if __name__ == "__main__":
     dataset = Dataset()
     annotatedData = []
     XMLRead.readXML('C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\tracks_1_300.xml', annotatedData)
-    tracks, mat, src_names = XMLRead.parseXMLDataForTracks(annotatedData, True)
+    # tracks, mat, src_names = XMLRead.parseXMLDataForTracks(annotatedData, True)
     # flowMatrix = CellDataReader.FlowMatrix(1280, 720)
     # unresolved_from_tracking = []
     # flow_matrix = flowMatrix.oldFlowMatrix(tracks, unresolved_from_tracking)

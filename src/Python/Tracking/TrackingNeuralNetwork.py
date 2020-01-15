@@ -71,13 +71,13 @@ class CellTracker(object):
 
 
 img_size = 60
-num_channels = 5
+num_channels = 9
 outputSize = 2
 
 session = tf.Session()
 
 dataset = Dataset.Dataset()
-trackingDataset = dataset.loadFromDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\trainTracking250SimulationMatrixFixed.record')
+trackingDataset = dataset.loadFromDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\trainTracking2504Channels.record')
 outputName = '.\\trainingOutput\\trackingNeuralNetwork'
 
 x = tf.placeholder(tf.float32, shape=[None, img_size, img_size, num_channels], name='x')
@@ -94,13 +94,13 @@ filter_size_conv3 = 3
 num_filters_conv3 = 32
 
 filter_size_conv4 = 3
-num_filters_conv4 = 64
+num_filters_conv4 = 32
 
 filter_size_conv5 = 3
-num_filters_conv5 = 64
+num_filters_conv5 = 32
 
 filter_size_conv6 = 3
-num_filters_conv6 = 64
+num_filters_conv6 = 32
 
 layer_conv1 = create_convolutional_layer(input=x,
                                          num_input_channels=num_channels,
@@ -131,25 +131,50 @@ layer_conv6 = create_convolutional_layer(input=layer_conv5,
                                          conv_filter_size=filter_size_conv6,
                                          num_filters=num_filters_conv6)
 
-layer_pool1 = create_pooling_layer(input=layer_conv6)
+layer_conv7 = create_convolutional_layer(input=layer_conv6,
+                                         num_input_channels=num_filters_conv5,
+                                         conv_filter_size=filter_size_conv6,
+                                         num_filters=num_filters_conv6)
 
-layer_pool2 = create_pooling_layer(input=layer_pool1)
+layer_conv8 = create_convolutional_layer(input=layer_conv7,
+                                         num_input_channels=num_filters_conv5,
+                                         conv_filter_size=filter_size_conv6,
+                                         num_filters=num_filters_conv6)
 
-layer_flat = create_flatten_layer(layer_pool2)
+layer_conv9 = create_convolutional_layer(input=layer_conv8,
+                                         num_input_channels=num_filters_conv5,
+                                         conv_filter_size=filter_size_conv6,
+                                         num_filters=num_filters_conv6)
+
+layer_conv10 = create_convolutional_layer(input=layer_conv9,
+                                          num_input_channels=num_filters_conv5,
+                                          conv_filter_size=filter_size_conv6,
+                                          num_filters=num_filters_conv6)
+
+layer_conv11 = create_convolutional_layer(input=layer_conv10,
+                                          num_input_channels=num_filters_conv5,
+                                          conv_filter_size=filter_size_conv6,
+                                          num_filters=num_filters_conv6)
+
+layer_conv12 = create_convolutional_layer(input=layer_conv11,
+                                          num_input_channels=num_filters_conv5,
+                                          conv_filter_size=filter_size_conv6,
+                                          num_filters=num_filters_conv6)
+
+layer_pool1 = create_pooling_layer(input=layer_conv12)
+
+layer_flat = create_flatten_layer(layer_pool1)
 
 layer_fc1 = create_fc_layer(input=layer_flat,
                             num_inputs=layer_flat.get_shape()[1:4].num_elements(),
                             num_outputs=outputSize,
                             use_relu=False)
 
-session.run(tf.global_variables_initializer())
-
 named_last_layer = tf.identity(layer_fc1, name="y_pred")
 
 cost = tf.reduce_mean(tf.square(tf.subtract(named_last_layer, y_true)))
 optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
-correct_prediction = tf.subtract(named_last_layer, y_true)
-accuracy = tf.reduce_mean(correct_prediction)
+accuracy = tf.reduce_sum(tf.abs(tf.subtract(named_last_layer, y_true)))
 
 session.run(tf.global_variables_initializer())
 
