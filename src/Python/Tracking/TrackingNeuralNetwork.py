@@ -77,7 +77,7 @@ outputSize = 2
 session = tf.Session()
 
 dataset = Dataset.Dataset()
-trackingDataset = dataset.loadFromDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\trainTracking250.record')
+trackingDataset = dataset.loadFromDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\trainTracking250SimulationMatrixFixed.record')
 outputName = '.\\trainingOutput\\trackingNeuralNetwork'
 
 x = tf.placeholder(tf.float32, shape=[None, img_size, img_size, num_channels], name='x')
@@ -146,7 +146,7 @@ session.run(tf.global_variables_initializer())
 
 named_last_layer = tf.identity(layer_fc1, name="y_pred")
 
-cost = tf.reduce_mean(tf.square(named_last_layer - y_true)) / (outputSize)
+cost = tf.reduce_mean(tf.square(tf.subtract(named_last_layer, y_true)))
 optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
 correct_prediction = tf.subtract(named_last_layer, y_true)
 accuracy = tf.reduce_mean(correct_prediction)
@@ -177,7 +177,7 @@ def train(num_iteration, trackingDataset):
     tfDatasetValidation = tf.data.Dataset.from_tensor_slices({'x_batch': trackingDataset.features[validationStart:validationStop],
                                                               'y_true': trackingDataset.response[validationStart:validationStop]})
 
-    datasetBatchTrain = tfDatasetTraining.batch(batch_size).repeat().shuffle(validationStart)
+    datasetBatchTrain = tfDatasetTraining.batch(batch_size).repeat().shuffle(int(validationStart / 2))
     iteratorTrain = datasetBatchTrain.make_one_shot_iterator()
     datasetBatchValidate = tfDatasetValidation.batch(batch_size).repeat()
     iteratorValidate = datasetBatchValidate.make_one_shot_iterator()

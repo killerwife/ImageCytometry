@@ -221,10 +221,10 @@ if __name__ == "__main__":
     # flowMatrix = CellDataReader.FlowMatrix(1280, 720)
     # unresolved_from_tracking = []
     # flow_matrix = flowMatrix.oldFlowMatrix(tracks, unresolved_from_tracking)
-    flowMatrixNew = CellDataReader.FlowMatrix(1280, 720)
+    flowMatrixNew = CellDataReader.FlowMatrix(1280, 720, 3)
     flowMatrixNew.readFlowMatrix(Definitions.DATA_ROOT_DIRECTORY + Definitions.FLOW_MATRIX_FILE)
     flow_matrix = flowMatrixNew.convertToOldArrayType()
     newDir = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking'
     if not os.path.exists(newDir):
         os.makedirs(newDir)
-    dataset.createTrackingDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\', annotatedData, 'Tracking250SimulationMatrix', flow_matrix)
+    dataset.createTrackingDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\', annotatedData, 'Tracking250SimulationMatrixFixed', flow_matrix)

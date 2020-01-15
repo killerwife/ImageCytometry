@@ -11,7 +11,7 @@ class CellPosition(object):
         self.z = 0
 
     def print(self):
-        print('ID: ' + str(self.id) + ' X: ' + str(self.x) + ' Y: ' + str(self.y) + ' Unk: ' + str(self.z))
+        print('ID: ' + str(self.id) + ' X: ' + str(self.x) + ' Y: ' + str(self.y) + ' Z: ' + str(self.z))
 
 
 class CellData(object):
@@ -52,9 +52,10 @@ class Vector2D(object):
 
 
 class FlowMatrix(object):
-    def __init__(self, width, height):
+    def __init__(self, width, height, multiplier):
         self.width = width
         self.height = height
+        self.multiplier = multiplier
         self.data = [[FlowMatrixData2D() for x in range(width)] for y in range(height)]
 
     def readFlowMatrix(self, filepath):
@@ -65,10 +66,10 @@ class FlowMatrix(object):
                 if len(lineSplit) < 6:
                     continue
                 entry = FlowMatrixData3D()
-                entry.x = int(lineSplit[0])
-                entry.y = int(lineSplit[1])
+                entry.x = int(lineSplit[0]) * self.multiplier
+                entry.y = self.height - 1 - int(lineSplit[1]) * self.multiplier
                 # stupid flow matrix in file can be bigger
-                if entry.x >= (self.width / 3) or entry.y >= (self.height / 3):
+                if entry.x + self.multiplier - 1 >= self.width or entry.y + self.multiplier - 1 >= self.height:
                     continue
                 entry.z = int(lineSplit[2])
                 # conversion of units from 3ms
@@ -80,15 +81,9 @@ class FlowMatrix(object):
         # get all data for each point - we only have data for every third
         temp3DArray = [[[] for x in range(self.width)] for y in range(self.height)]
         for data in newData:
-            temp3DArray[data.y * 3][data.x * 3].append(data)
-            temp3DArray[data.y * 3 + 1][data.x * 3].append(data)
-            temp3DArray[data.y * 3 + 2][data.x * 3].append(data)
-            temp3DArray[data.y * 3][data.x * 3 + 1].append(data)
-            temp3DArray[data.y * 3 + 1][data.x * 3 + 1].append(data)
-            temp3DArray[data.y * 3 + 2][data.x * 3 + 1].append(data)
-            temp3DArray[data.y * 3][data.x * 3 + 2].append(data)
-            temp3DArray[data.y * 3 + 1][data.x * 3 + 2].append(data)
-            temp3DArray[data.y * 3 + 2][data.x * 3 + 2].append(data)
+            for i in range(self.multiplier):
+                for k in range(self.multiplier):
+                    temp3DArray[data.y + i][data.x + k].append(data)
 
         # calculate 2D flow matrix - iterate over indices cos of incomplete data in columns - just fill 0
         for rowIter in range(len(temp3DArray)):
@@ -96,9 +91,9 @@ class FlowMatrix(object):
                 maxVelocityX = 0
                 maxVelocityY = 0
                 for pointData in temp3DArray[rowIter][colIter]:
-                    if maxVelocityX < pointData.velocityX:
+                    if abs(maxVelocityX) < abs(pointData.velocityX):
                         maxVelocityX = pointData.velocityX
-                    if maxVelocityY < pointData.velocityY:
+                    if abs(maxVelocityY) < abs(pointData.velocityY):
                         maxVelocityY = pointData.velocityY
                 self.data[rowIter][colIter] =\
                     FlowMatrixData2D(colIter, rowIter, maxVelocityX, maxVelocityY)

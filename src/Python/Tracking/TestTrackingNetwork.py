@@ -12,7 +12,7 @@ sess = tf.Session()
 saver.restore(sess, tf.train.latest_checkpoint('./trainingOutput/'))
 
 dataset = Dataset.Dataset()
-trackingDataset = dataset.loadFromDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\trainTracking250.record')
+trackingDataset = dataset.loadFromDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\trainTracking250SimulationMatrixFixed.record')
 
 allSamples = len(trackingDataset.features)
 testingStart = int(allSamples * 80 / 100)
@@ -43,4 +43,4 @@ for i in range(len(result)):
 
 print('Error: ' + str(error))
 for i in range(len(result)):
-    print('Input data: ' + str(inputData[i]) + 'Original data: ' + str(outputData[i]) + ' Predicted data: ' + str(result[i]))
+    print('Original data: ' + str(outputData[i]) + ' Predicted data: ' + str(result[i]))
