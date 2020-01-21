@@ -7,9 +7,9 @@ import cv2
 session = tf.Session()
 
 dataset = Dataset.Dataset()
-trackingDataset = dataset.loadFromDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\trainTracking2504Channels.record')
+trackingDataset = dataset.loadFromDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\trainTracking250SimulationMatrixFixed.record')
 
-for l in range(9):
+for l in range(5):
     for i in range(len(trackingDataset.features[0])):
         for k in range(len(trackingDataset.features[0][i])):
             print(trackingDataset.features[0][i][k][l], end=" ")

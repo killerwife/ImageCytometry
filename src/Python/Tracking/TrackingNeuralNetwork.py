@@ -71,13 +71,13 @@ class CellTracker(object):
 
 
 img_size = 60
-num_channels = 9
+num_channels = 5
 outputSize = 2
 
 session = tf.Session()
 
 dataset = Dataset.Dataset()
-trackingDataset = dataset.loadFromDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\trainTracking2504Channels.record')
+trackingDataset = dataset.loadFromDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\trainTracking250SimulationMatrixFixed.record')
 outputName = '.\\trainingOutput\\trackingNeuralNetwork'
 
 x = tf.placeholder(tf.float32, shape=[None, img_size, img_size, num_channels], name='x')
@@ -179,11 +179,11 @@ accuracy = tf.reduce_sum(tf.abs(tf.subtract(named_last_layer, y_true)))
 session.run(tf.global_variables_initializer())
 
 
-def show_progress(epoch, feed_dict_train, feed_dict_validate, val_loss):
+def show_progress(epoch, train_loss, feed_dict_train, feed_dict_validate, val_loss):
     acc = session.run(accuracy, feed_dict=feed_dict_train)
     val_acc = session.run(accuracy, feed_dict=feed_dict_validate)
-    msg = "Training Epoch {0} --- Training Accuracy: {1:>6.1%}, Validation Accuracy: {2:>6.1%},  Validation Loss: {3:.3f}"
-    print(msg.format(epoch + 1, acc, val_acc, val_loss))
+    msg = "Training Epoch {0} --- Training Loss: {4:.3f} Training Error Sum: {1:6.1f}, Validation Error Sum: {2:6.1f},  Validation Loss: {3:.3f}"
+    print(msg.format(epoch + 1, acc, val_acc, val_loss, train_loss))
 
 
 total_iterations = 0
@@ -223,15 +223,16 @@ def train(num_iteration, trackingDataset):
 
         session.run(optimizer, feed_dict=feed_dict_tr)
         if i % 400 == 0:
+            train_loss = session.run(cost, feed_dict=feed_dict_tr)
             val_loss = session.run(cost, feed_dict=feed_dict_val)
             epoch = int(i / int(validationStart / batch_size))
 
-            show_progress(epoch, feed_dict_tr, feed_dict_val, val_loss)
+            show_progress(epoch, train_loss, feed_dict_tr, feed_dict_val, val_loss)
             saver.save(session, outputName)
 
     total_iterations += num_iteration
 
-train(num_iteration=10000, trackingDataset=trackingDataset)
+train(num_iteration=100000, trackingDataset=trackingDataset)
 
 
 
