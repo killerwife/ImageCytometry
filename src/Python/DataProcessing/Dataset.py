@@ -114,13 +114,13 @@ class Dataset(object):
         }))
         return tf_example
 
-    def createTrackingDataset(self, folderPath, annotatedData, recordName, flowmatrix):
+    def createTrackingDataset(self, folderPath, annotatedData, recordName, flowmatrix, size):
         tracks = XMLRead.initTracks(annotatedData)
         writers = []
         entries = 0
         writers.append(tf.python_io.TFRecordWriter(folderPath + 'train' + recordName + '.record'))
         writers.append(tf.python_io.TFRecordWriter(folderPath + 'eval' + recordName + '.record'))
-        array = np.zeros((60, 60, 5), np.float32)  # index 0 - x velocity index 1 y velocity index 2 other cells
+        array = np.zeros((size, size, 5), np.float32)  # index 0 - x velocity index 1 y velocity index 2 other cells
 
         # velocities = np.zeros((720, 1280, 2), np.float32)
         # for currentKey, currentTrack in tracks.items():
@@ -159,12 +159,12 @@ class Dataset(object):
                     prevVelocityX, prevVelocityY = calculateVelocity(leftBox, rightBox)
                     sameFrameMiddleX = int(rightBox.x + rightBox.width / 2)
                     sameFrameMiddleY = int(rightBox.y + rightBox.height / 2)
-                    indexX = sameFrameMiddleX - (middleX - 30)
-                    if indexX < 0 or indexX > 59:
+                    indexX = sameFrameMiddleX - (middleX - size / 2)
+                    if indexX < 0 or indexX >= size:
                         print('Outside of bounds : ' + str(indexX) + ' VelocityX: ' + str(prevVelocityX) + ' VelocityY: ' + str(prevVelocityY))
                         return
-                    indexY = sameFrameMiddleY - (middleY - 30)
-                    if indexY < 0 or indexY > 59:
+                    indexY = sameFrameMiddleY - (middleY - size / 2)
+                    if indexY < 0 or indexY >= size:
                         print('Outside of bounds : ' + str(indexY) + ' VelocityX: ' + str(prevVelocityX) + ' VelocityY: ' + str(prevVelocityY))
                         return
                     array[indexY][indexX][index] = prevVelocityX
@@ -173,16 +173,16 @@ class Dataset(object):
                 currentVelocityX, currentVelocityY = calculateVelocity(previousBoundingBox, trackedBoundingBox)
                 nextBoundingBox = track.boundingBoxes[boundingBoxIndex + 1]
                 futureVelocityX, futureVelocityY = calculateVelocity(trackedBoundingBox, nextBoundingBox)
-                array[30][30][0] = currentVelocityX
-                array[30][30][1] = currentVelocityY
+                array[int(size / 2)][int(size / 2)][0] = currentVelocityX / 12
+                array[int(size / 2)][int(size / 2)][1] = currentVelocityY / 12
 
                 # fill other cells
                 middleX = int(trackedBoundingBox.x + trackedBoundingBox.width / 2)
                 middleY = int(trackedBoundingBox.y + trackedBoundingBox.height / 2)
-                # for i in range(60):
-                #     for k in range(60):
-                #         array[i][k][2] = velocities[middleY - 30 + i][middleX - 30 + k][0]
-                #         array[i][k][3] = velocities[middleY - 30 + i][middleX - 30 + k][1]
+                # for i in range(size):
+                #     for k in range(size):
+                #         array[i][k][2] = velocities[middleY - size / 2 + i][middleX - size / 2 + k][0]
+                #         array[i][k][3] = velocities[middleY - size / 2 + i][middleX - size / 2 + k][1]
                 # setPreviousVelocity(track.boundingBoxes[boundingBoxIndex - 2],
                 #                     track.boundingBoxes[boundingBoxIndex - 1], array, middleX, middleY, 2)
                 # setPreviousVelocity(track.boundingBoxes[boundingBoxIndex - 3],
@@ -196,39 +196,39 @@ class Dataset(object):
 
                 for sameFrameBoundingBox in annotatedData[trackedBoundingBox.frameId].boundingBoxes:
                     sameFrameMiddleX = sameFrameBoundingBox.x + sameFrameBoundingBox.width / 2
-                    if middleX - 31 < sameFrameMiddleX < middleX + 30:
+                    if middleX - size / 2 - 1 < sameFrameMiddleX < middleX + size / 2:
                         sameFrameMiddleY = sameFrameBoundingBox.y + sameFrameBoundingBox.height / 2
-                        if middleY - 31 < sameFrameMiddleY < middleY + 30:
-                            array[int(sameFrameMiddleY - (middleY - 30))][int(sameFrameMiddleX - (middleX - 30))][2] = 1
+                        if middleY - size / 2 - 1 < sameFrameMiddleY < middleY + size / 2:
+                            array[int(sameFrameMiddleY - (middleY - size / 2))][int(sameFrameMiddleX - (middleX - size / 2))][2] = 1
 
                 # fill flow matrix
-                for i in range(60):
-                    if 0 <= trackedBoundingBox.x - 30 + i < len(flowmatrix):
-                        for k in range(60):
-                            if 0 <= trackedBoundingBox.y - 30 + k < len(flowmatrix[0]):
-                                data = flowmatrix[trackedBoundingBox.x - 30 + i][trackedBoundingBox.y - 30 + k]
+                for i in range(size):
+                    if 0 <= trackedBoundingBox.x - size / 2 + i < len(flowmatrix):
+                        for k in range(size):
+                            if 0 <= trackedBoundingBox.y - size / 2 + k < len(flowmatrix[0]):
+                                data = flowmatrix[trackedBoundingBox.x - int(size / 2) + i][trackedBoundingBox.y - int(size / 2) + k]
                                 if data[0] == -1:
                                     array[k][i][3] = 0
                                     array[k][i][4] = 0
                                 else:
-                                    array[k][i][3] = data[1][0]
-                                    array[k][i][4] = data[1][1]
+                                    array[k][i][3] = data[1][0] / 12
+                                    array[k][i][4] = data[1][1] / 12
 
-                tf_example = self.createTrackingTFRecord(array, 60, 60, trackedBoundingBox.x, trackedBoundingBox.y, [futureVelocityX, futureVelocityY])
+                tf_example = self.createTrackingTFRecord(array, size, size, trackedBoundingBox.x, trackedBoundingBox.y, [futureVelocityX, futureVelocityY])
                 writers[0].write(tf_example.SerializeToString())
                 boundingBoxIndex += 1
                 entries += 1
             print('Processed track: ' + str(key))
         print('Saved ' + str(entries) + ' to dataset.')
 
-    def loadFromDataset(self, filename):
+    def loadFromDataset(self, filename, size):
         record = tf.data.TFRecordDataset(filename)
         feature_description = {
             'data/height': tf.FixedLenFeature([], tf.int64),
             'data/width': tf.FixedLenFeature([], tf.int64),
             'data/x': tf.FixedLenFeature([], tf.int64),
             'data/y': tf.FixedLenFeature([], tf.int64),
-            'data/features': tf.FixedLenFeature([60, 60, 5], tf.float32),
+            'data/features': tf.FixedLenFeature([size, size, 5], tf.float32),
             'data/response': tf.FixedLenFeature([2], tf.float32),
         }
 
@@ -274,6 +274,7 @@ if __name__ == "__main__":
     dataset = Dataset()
     annotatedData = []
     XMLRead.readXML('C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\tracks_1_300.xml', annotatedData)
+    DATASET_OUTPUT_PATH = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\'
     # tracks, mat, src_names = XMLRead.parseXMLDataForTracks(annotatedData, True)
     # flowMatrix = CellDataReader.FlowMatrix(1280, 720)
     # unresolved_from_tracking = []
@@ -284,4 +285,4 @@ if __name__ == "__main__":
     newDir = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking'
     if not os.path.exists(newDir):
         os.makedirs(newDir)
-    dataset.createTrackingDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\', annotatedData, 'Tracking250SimulationMatrixFixed', flow_matrix)
+    dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, 'Tracking250SimulationMatrix30', flow_matrix, 30)

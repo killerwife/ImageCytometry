@@ -1,6 +1,17 @@
 import tensorflow as tf
 import Dataset
 
+PATH_TO_DATASETS = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\'
+DATASET_NAME = 'trainTracking250SimulationMatrixFixed.record'
+NEURAL_NETWORK_OUTPUT_DIR = 'trainingOutput\\'
+MODEL_NAME = 'trackingNeuralNetwork'
+NUM_OF_ITERATIONS = 50000
+img_size = 60
+num_channels = 5
+outputSize = 2
+batch_size = 32
+
+
 def create_weights(shape):
     return tf.Variable(tf.truncated_normal(shape, stddev=0.05))
 
@@ -23,6 +34,7 @@ def create_convolutional_layer(input, num_input_channels, conv_filter_size, num_
     layer = tf.nn.relu(layer)
 
     return layer
+
 
 def create_pooling_layer(input):
     # We shall be using max-pooling.
@@ -59,6 +71,7 @@ def create_fc_layer(input, num_inputs, num_outputs, use_relu=True):
 
     return layer
 
+
 class CellTracker(object):
     # def load(self, filename):
         # TODO
@@ -70,130 +83,114 @@ class CellTracker(object):
         print()
 
 
-img_size = 60
-num_channels = 5
-outputSize = 2
+def designNeuralNetwork(img_size, num_channels, output_size):
+    x = tf.placeholder(tf.float32, shape=[None, img_size, img_size, num_channels], name='x')
 
-session = tf.Session()
+    y_true = tf.placeholder(tf.float32, shape=[None, output_size], name='y_true')
 
-dataset = Dataset.Dataset()
-trackingDataset = dataset.loadFromDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\trainTracking250SimulationMatrixFixed.record')
-outputName = '.\\trainingOutput\\trackingNeuralNetwork'
+    filter_size_conv1 = 3
+    num_filters_conv1 = 32
 
-x = tf.placeholder(tf.float32, shape=[None, img_size, img_size, num_channels], name='x')
+    filter_size_conv2 = 3
+    num_filters_conv2 = 32
 
-y_true = tf.placeholder(tf.float32, shape=[None, outputSize], name='y_true')
+    filter_size_conv3 = 3
+    num_filters_conv3 = 32
 
-filter_size_conv1 = 3
-num_filters_conv1 = 32
+    filter_size_conv4 = 3
+    num_filters_conv4 = 32
 
-filter_size_conv2 = 3
-num_filters_conv2 = 32
+    filter_size_conv5 = 3
+    num_filters_conv5 = 32
 
-filter_size_conv3 = 3
-num_filters_conv3 = 32
+    filter_size_conv6 = 3
+    num_filters_conv6 = 32
 
-filter_size_conv4 = 3
-num_filters_conv4 = 32
+    layer_conv1 = create_convolutional_layer(input=x,
+                                             num_input_channels=num_channels,
+                                             conv_filter_size=filter_size_conv1,
+                                             num_filters=num_filters_conv1)
+    layer_conv2 = create_convolutional_layer(input=layer_conv1,
+                                             num_input_channels=num_filters_conv1,
+                                             conv_filter_size=filter_size_conv2,
+                                             num_filters=num_filters_conv2)
 
-filter_size_conv5 = 3
-num_filters_conv5 = 32
+    layer_conv3 = create_convolutional_layer(input=layer_conv2,
+                                             num_input_channels=num_filters_conv2,
+                                             conv_filter_size=filter_size_conv3,
+                                             num_filters=num_filters_conv3)
 
-filter_size_conv6 = 3
-num_filters_conv6 = 32
+    layer_conv4 = create_convolutional_layer(input=layer_conv3,
+                                             num_input_channels=num_filters_conv3,
+                                             conv_filter_size=filter_size_conv4,
+                                             num_filters=num_filters_conv4)
 
-layer_conv1 = create_convolutional_layer(input=x,
-                                         num_input_channels=num_channels,
-                                         conv_filter_size=filter_size_conv1,
-                                         num_filters=num_filters_conv1)
-layer_conv2 = create_convolutional_layer(input=layer_conv1,
-                                         num_input_channels=num_filters_conv1,
-                                         conv_filter_size=filter_size_conv2,
-                                         num_filters=num_filters_conv2)
+    layer_conv5 = create_convolutional_layer(input=layer_conv4,
+                                             num_input_channels=num_filters_conv4,
+                                             conv_filter_size=filter_size_conv5,
+                                             num_filters=num_filters_conv5)
 
-layer_conv3 = create_convolutional_layer(input=layer_conv2,
-                                         num_input_channels=num_filters_conv2,
-                                         conv_filter_size=filter_size_conv3,
-                                         num_filters=num_filters_conv3)
+    layer_conv6 = create_convolutional_layer(input=layer_conv5,
+                                             num_input_channels=num_filters_conv5,
+                                             conv_filter_size=filter_size_conv6,
+                                             num_filters=num_filters_conv6)
 
-layer_conv4 = create_convolutional_layer(input=layer_conv3,
-                                         num_input_channels=num_filters_conv3,
-                                         conv_filter_size=filter_size_conv4,
-                                         num_filters=num_filters_conv4)
+    layer_conv7 = create_convolutional_layer(input=layer_conv6,
+                                             num_input_channels=num_filters_conv5,
+                                             conv_filter_size=filter_size_conv6,
+                                             num_filters=num_filters_conv6)
 
-layer_conv5 = create_convolutional_layer(input=layer_conv4,
-                                         num_input_channels=num_filters_conv4,
-                                         conv_filter_size=filter_size_conv5,
-                                         num_filters=num_filters_conv5)
+    layer_conv8 = create_convolutional_layer(input=layer_conv7,
+                                             num_input_channels=num_filters_conv5,
+                                             conv_filter_size=filter_size_conv6,
+                                             num_filters=num_filters_conv6)
 
-layer_conv6 = create_convolutional_layer(input=layer_conv5,
-                                         num_input_channels=num_filters_conv5,
-                                         conv_filter_size=filter_size_conv6,
-                                         num_filters=num_filters_conv6)
+    layer_conv9 = create_convolutional_layer(input=layer_conv8,
+                                             num_input_channels=num_filters_conv5,
+                                             conv_filter_size=filter_size_conv6,
+                                             num_filters=num_filters_conv6)
 
-layer_conv7 = create_convolutional_layer(input=layer_conv6,
-                                         num_input_channels=num_filters_conv5,
-                                         conv_filter_size=filter_size_conv6,
-                                         num_filters=num_filters_conv6)
+    layer_conv10 = create_convolutional_layer(input=layer_conv9,
+                                              num_input_channels=num_filters_conv5,
+                                              conv_filter_size=filter_size_conv6,
+                                              num_filters=num_filters_conv6)
 
-layer_conv8 = create_convolutional_layer(input=layer_conv7,
-                                         num_input_channels=num_filters_conv5,
-                                         conv_filter_size=filter_size_conv6,
-                                         num_filters=num_filters_conv6)
+    layer_conv11 = create_convolutional_layer(input=layer_conv10,
+                                              num_input_channels=num_filters_conv5,
+                                              conv_filter_size=filter_size_conv6,
+                                              num_filters=num_filters_conv6)
 
-layer_conv9 = create_convolutional_layer(input=layer_conv8,
-                                         num_input_channels=num_filters_conv5,
-                                         conv_filter_size=filter_size_conv6,
-                                         num_filters=num_filters_conv6)
+    layer_conv12 = create_convolutional_layer(input=layer_conv11,
+                                              num_input_channels=num_filters_conv5,
+                                              conv_filter_size=filter_size_conv6,
+                                              num_filters=num_filters_conv6)
 
-layer_conv10 = create_convolutional_layer(input=layer_conv9,
-                                          num_input_channels=num_filters_conv5,
-                                          conv_filter_size=filter_size_conv6,
-                                          num_filters=num_filters_conv6)
+    layer_pool1 = create_pooling_layer(input=layer_conv12)
 
-layer_conv11 = create_convolutional_layer(input=layer_conv10,
-                                          num_input_channels=num_filters_conv5,
-                                          conv_filter_size=filter_size_conv6,
-                                          num_filters=num_filters_conv6)
+    layer_flat = create_flatten_layer(layer_pool1)
 
-layer_conv12 = create_convolutional_layer(input=layer_conv11,
-                                          num_input_channels=num_filters_conv5,
-                                          conv_filter_size=filter_size_conv6,
-                                          num_filters=num_filters_conv6)
+    layer_fc1 = create_fc_layer(input=layer_flat,
+                                num_inputs=layer_flat.get_shape()[1:4].num_elements(),
+                                num_outputs=outputSize,
+                                use_relu=False)
 
-layer_pool1 = create_pooling_layer(input=layer_conv12)
+    named_last_layer = tf.identity(layer_fc1, name="y_pred")
 
-layer_flat = create_flatten_layer(layer_pool1)
-
-layer_fc1 = create_fc_layer(input=layer_flat,
-                            num_inputs=layer_flat.get_shape()[1:4].num_elements(),
-                            num_outputs=outputSize,
-                            use_relu=False)
-
-named_last_layer = tf.identity(layer_fc1, name="y_pred")
-
-cost = tf.reduce_mean(tf.square(tf.subtract(named_last_layer, y_true)))
-optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
-accuracy = tf.reduce_sum(tf.abs(tf.subtract(named_last_layer, y_true)))
-
-session.run(tf.global_variables_initializer())
+    cost = tf.reduce_mean(tf.square(tf.subtract(named_last_layer, y_true)))
+    optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
+    accuracy = tf.reduce_sum(tf.abs(tf.subtract(named_last_layer, y_true)))
+    return optimizer, cost, accuracy, x, y_true
 
 
-def show_progress(epoch, train_loss, feed_dict_train, feed_dict_validate, val_loss):
+def show_progress(accuracy, epoch, train_loss, feed_dict_train, feed_dict_validate, val_loss):
     acc = session.run(accuracy, feed_dict=feed_dict_train)
     val_acc = session.run(accuracy, feed_dict=feed_dict_validate)
     msg = "Training Epoch {0} --- Training Loss: {4:.3f} Training Error Sum: {1:6.1f}, Validation Error Sum: {2:6.1f},  Validation Loss: {3:.3f}"
     print(msg.format(epoch + 1, acc, val_acc, val_loss, train_loss))
 
 
-total_iterations = 0
-
-saver = tf.train.Saver()
-
-batch_size = 32
-
-def train(num_iteration, trackingDataset):
-    global total_iterations
+def train(num_iteration, trackingDataset, batch_size, optimizer, cost, accuracy, x, y_true):
+    total_iterations = 0
     allSamples = len(trackingDataset.features)
     validationStart = int(allSamples * 60 / 100)
     validationStop = int(allSamples * 80 / 100)
@@ -222,17 +219,30 @@ def train(num_iteration, trackingDataset):
         feed_dict_val = {x: resultDatasetValidate['x_batch'], y_true: resultDatasetValidate['y_true']}
 
         session.run(optimizer, feed_dict=feed_dict_tr)
-        if i % 400 == 0:
+        if i % validationStart == 0:
             train_loss = session.run(cost, feed_dict=feed_dict_tr)
             val_loss = session.run(cost, feed_dict=feed_dict_val)
             epoch = int(i / int(validationStart / batch_size))
 
-            show_progress(epoch, train_loss, feed_dict_tr, feed_dict_val, val_loss)
+            show_progress(accuracy, epoch, train_loss, feed_dict_tr, feed_dict_val, val_loss)
             saver.save(session, outputName)
 
     total_iterations += num_iteration
 
-train(num_iteration=100000, trackingDataset=trackingDataset)
+session = tf.Session()
+
+dataset = Dataset.Dataset()
+trackingDataset = dataset.loadFromDataset(PATH_TO_DATASETS + DATASET_NAME, img_size)
+outputName = NEURAL_NETWORK_OUTPUT_DIR + MODEL_NAME
+
+optimizer, cost, accuracy, x, y_true = designNeuralNetwork(img_size, num_channels, outputSize)
+
+session.run(tf.global_variables_initializer())
+
+saver = tf.train.Saver()
+
+train(num_iteration=NUM_OF_ITERATIONS, trackingDataset=trackingDataset, batch_size=batch_size, optimizer=optimizer,
+      cost=cost, accuracy=accuracy, x=x, y_true=y_true)
 
 
 

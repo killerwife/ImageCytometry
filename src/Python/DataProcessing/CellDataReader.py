@@ -73,9 +73,9 @@ class FlowMatrix(object):
                     continue
                 entry.z = int(lineSplit[2])
                 # conversion of units from 3ms
-                entry.velocityX = float(lineSplit[3]) * 1000
-                entry.velocityY = float(lineSplit[4]) * 1000
-                entry.velocityZ = float(lineSplit[5]) * 1000
+                entry.velocityX = float(lineSplit[3]) * 100000
+                entry.velocityY = float(lineSplit[4]) * 100000
+                entry.velocityZ = float(lineSplit[5]) * 100000
                 newData.append(entry)
 
         # get all data for each point - we only have data for every third
