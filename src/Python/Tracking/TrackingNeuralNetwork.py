@@ -5,8 +5,8 @@ PATH_TO_DATASETS = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking
 DATASET_NAME = 'trainTracking250SimulationMatrixFixed.record'
 NEURAL_NETWORK_OUTPUT_DIR = 'trainingOutput\\'
 MODEL_NAME = 'trackingNeuralNetwork'
-NUM_OF_ITERATIONS = 50000
-img_size = 60
+NUM_OF_ITERATIONS = 100000
+img_size = 30
 num_channels = 5
 outputSize = 2
 batch_size = 32
@@ -219,7 +219,7 @@ def train(num_iteration, trackingDataset, batch_size, optimizer, cost, accuracy,
         feed_dict_val = {x: resultDatasetValidate['x_batch'], y_true: resultDatasetValidate['y_true']}
 
         session.run(optimizer, feed_dict=feed_dict_tr)
-        if i % validationStart == 0:
+        if i % (validationStart / batch_size) == 0:
             train_loss = session.run(cost, feed_dict=feed_dict_tr)
             val_loss = session.run(cost, feed_dict=feed_dict_val)
             epoch = int(i / int(validationStart / batch_size))
