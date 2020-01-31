@@ -1,5 +1,6 @@
 import tensorflow as tf
 import Dataset
+import random
 
 PATH_TO_DATASETS = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\'
 DATASET_NAME = 'trainTracking250SimulationMatrixFixed.record'
@@ -192,12 +193,14 @@ def show_progress(accuracy, epoch, train_loss, feed_dict_train, feed_dict_valida
 def train(num_iteration, trackingDataset, batch_size, optimizer, cost, accuracy, x, y_true):
     total_iterations = 0
     allSamples = len(trackingDataset.features)
+    tf.random.set_seed(2)
     validationStart = int(allSamples * 60 / 100)
     validationStop = int(allSamples * 80 / 100)
-    tfDatasetTraining = tf.data.Dataset.from_tensor_slices({'x_batch': trackingDataset.features[:validationStart],
-                                                            'y_true': trackingDataset.response[:validationStart]})
-    tfDatasetValidation = tf.data.Dataset.from_tensor_slices({'x_batch': trackingDataset.features[validationStart:validationStop],
-                                                              'y_true': trackingDataset.response[validationStart:validationStop]})
+    tfDatasetFull = tf.data.Dataset.from_tensor_slices({'x_batch': trackingDataset.features[:validationStop],
+                                                            'y_true': trackingDataset.response[:validationStop]})
+    tfDatasetFull = tfDatasetFull.shuffle()
+    tfDatasetTraining = tfDatasetFull.take(validationStart)
+    tfDatasetValidation = tfDatasetFull.skip(validationStart)
 
     datasetBatchTrain = tfDatasetTraining.batch(batch_size).repeat().shuffle(int(validationStart / 2))
     iteratorTrain = datasetBatchTrain.make_one_shot_iterator()
