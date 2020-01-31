@@ -193,12 +193,12 @@ def show_progress(accuracy, epoch, train_loss, feed_dict_train, feed_dict_valida
 def train(num_iteration, trackingDataset, batch_size, optimizer, cost, accuracy, x, y_true):
     total_iterations = 0
     allSamples = len(trackingDataset.features)
-    tf.random.set_seed(2)
+    tf.random.set_random_seed(2)
     validationStart = int(allSamples * 60 / 100)
     validationStop = int(allSamples * 80 / 100)
     tfDatasetFull = tf.data.Dataset.from_tensor_slices({'x_batch': trackingDataset.features[:validationStop],
                                                             'y_true': trackingDataset.response[:validationStop]})
-    tfDatasetFull = tfDatasetFull.shuffle()
+    tfDatasetFull = tfDatasetFull.shuffle(validationStop)
     tfDatasetTraining = tfDatasetFull.take(validationStart)
     tfDatasetValidation = tfDatasetFull.skip(validationStart)
 
