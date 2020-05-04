@@ -25,9 +25,11 @@ class TrackingDataset(object):
 
 class Dataset(object):
     # detection
-    def createTFRecord(self, imageData, imagePath):
-        # image = cv2.imread(imagePath + imageData.filename, cv2.IMREAD_GRAYSCALE)
-        image = cv2.imread(imagePath + imageData.filename, cv2.IMREAD_COLOR)
+    def createTFRecord(self, imageData, imagePath, gray):
+        if gray:
+            image = cv2.imread(imagePath + imageData.filename, cv2.IMREAD_GRAYSCALE)
+        else:
+            image = cv2.imread(imagePath + imageData.filename, cv2.IMREAD_COLOR)
         filename = imageData.filename  # Filename of the image. Empty if image is not from file
         encoded_image_data = cv2.imencode('.png', image)[1].tostring()
         encoded_image_string_tf = tf.compat.as_bytes(encoded_image_data)
@@ -68,7 +70,7 @@ class Dataset(object):
         }))
         return tf_example
 
-    def processXML(self, writers, annotatedData, imageFolders, boundary, index):
+    def processXML(self, writers, annotatedData, imageFolders, boundary, index, gray):
         i = -1
         counters = []
         counters.append(0)
@@ -81,12 +83,12 @@ class Dataset(object):
             writerIndex = 0
             if i >= boundary.startBoundary and i < boundary.endBoundary:
                 writerIndex = 1
-            tf_example = self.createTFRecord(example, imageFolders[index])
+            tf_example = self.createTFRecord(example, imageFolders[index], gray)
             writers[writerIndex].write(tf_example.SerializeToString())
             counters[writerIndex] += 1
         print("Inserted images to index " + str(index) + " : " + str(counters[0]) + " " + str(counters[1]))
 
-    def generateTfRecord(self, folderPath, recordName, imageFolders, boundaries, xmlFiles):
+    def generateTfRecord(self, folderPath, recordName, imageFolders, boundaries, xmlFiles, gray):
         writers = []
         writers.append(tf.python_io.TFRecordWriter(folderPath + 'train' + recordName + '.record'))
         writers.append(tf.python_io.TFRecordWriter(folderPath + 'eval' + recordName + '.record'))
@@ -96,7 +98,7 @@ class Dataset(object):
             annotatedData = []
             filePathImageData = xmlFiles[i]
             XMLRead.readXML(filePathImageData, annotatedData)
-            self.processXML(writers, annotatedData, imageFolders, boundaries[i], i)
+            self.processXML(writers, annotatedData, imageFolders, boundaries[i], i, gray)
             i += 1
 
         writers[0].close()
