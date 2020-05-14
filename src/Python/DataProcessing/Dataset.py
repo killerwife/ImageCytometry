@@ -5,6 +5,7 @@ import numpy as np
 import CellDataReader
 import os
 import Definitions
+from enum import Enum
 from object_detection.utils import dataset_util
 
 class DatasetSegment(object):
@@ -22,6 +23,12 @@ class TrackingDataset(object):
         self.y = y
         self.features = features
         self.response = response
+
+
+class Input(Enum):
+    ANNOTATED = 0
+    SIMULATION = 1
+
 
 class Dataset(object):
     # detection
@@ -116,8 +123,11 @@ class Dataset(object):
         }))
         return tf_example
 
-    def createTrackingDataset(self, folderPath, annotatedData, recordName, flowmatrix, size):
-        tracks = XMLRead.initTracks(annotatedData)
+    def createTrackingDataset(self, folderPath, annotatedData, simulationData, recordName, flowmatrix, size, input, rotations):
+        if input == Input.ANNOTATED:
+            tracks = XMLRead.initTracks(annotatedData)
+        elif input == Input.SIMULATION:
+            tracks = CellDataReader.parseTrackInfo(simulationData)
         writers = []
         entries = 0
         writers.append(tf.python_io.TFRecordWriter(folderPath + 'train' + recordName + '.record'))
@@ -196,12 +206,23 @@ class Dataset(object):
                 # if frameDiff > 4:
                 #     print('Frame diff: ' + str(frameDiff))
 
-                for sameFrameBoundingBox in annotatedData[trackedBoundingBox.frameId].boundingBoxes:
-                    sameFrameMiddleX = sameFrameBoundingBox.x + sameFrameBoundingBox.width / 2
-                    if middleX - size / 2 - 1 < sameFrameMiddleX < middleX + size / 2:
-                        sameFrameMiddleY = sameFrameBoundingBox.y + sameFrameBoundingBox.height / 2
-                        if middleY - size / 2 - 1 < sameFrameMiddleY < middleY + size / 2:
-                            array[int(sameFrameMiddleY - (middleY - size / 2))][int(sameFrameMiddleX - (middleX - size / 2))][2] = 1
+                if input == Input.ANNOTATED:
+                    for sameFrameBoundingBox in annotatedData[trackedBoundingBox.frameId].boundingBoxes:
+                        sameFrameMiddleX = sameFrameBoundingBox.x + sameFrameBoundingBox.width / 2
+                        if middleX - size / 2 - 1 < sameFrameMiddleX < middleX + size / 2:
+                            sameFrameMiddleY = sameFrameBoundingBox.y + sameFrameBoundingBox.height / 2
+                            if middleY - size / 2 - 1 < sameFrameMiddleY < middleY + size / 2:
+                                array[int(sameFrameMiddleY - (middleY - size / 2))][
+                                    int(sameFrameMiddleX - (middleX - size / 2))][2] = 1
+                elif input == Input.SIMULATION:
+                    for cell in simulationData:
+                        for cellPos in cell.cellPositions:
+                            if cellPos.id == trackedBoundingBox.frameId:
+                                if middleX - size / 2 - 1 < cellPos.x < middleX + size / 2:
+                                    if middleY - size / 2 - 1 < cellPos.y < middleY + size / 2:
+                                        array[int(cellPos.y - (middleY - size / 2))][
+                                            int(cellPos.x - (middleX - size / 2))][2] = 1
+                                break
 
                 # fill flow matrix
                 for i in range(size):
@@ -216,8 +237,25 @@ class Dataset(object):
                                     array[k][i][3] = data[1][0] / 12
                                     array[k][i][4] = data[1][1] / 12
 
-                tf_example = self.createTrackingTFRecord(array, size, size, trackedBoundingBox.x, trackedBoundingBox.y, [futureVelocityX, futureVelocityY])
-                writers[0].write(tf_example.SerializeToString())
+                # 3x 90 degree rotation for more data
+                tempFutureVelX = futureVelocityX
+                tempFutureVelY = futureVelocityY
+                for i in range(4):
+                    if i != 0:
+                        np.rot90(array)
+                        array[0], array[1] = array[1], array[0]
+                        np.multiply(array[0], -1)
+                        temp = tempFutureVelX
+                        tempFutureVelX = -tempFutureVelY
+                        tempFutureVelY = temp
+                        array[3], array[4] = array[4], array[3]
+                        np.multiply(array[3], -1)
+                    tf_example = self.createTrackingTFRecord(array, size, size, trackedBoundingBox.x,
+                                                             trackedBoundingBox.y, [tempFutureVelX, tempFutureVelY])
+                    writers[0].write(tf_example.SerializeToString())
+                    if rotations == False:
+                        break
+
                 boundingBoxIndex += 1
                 entries += 1
             print('Processed track: ' + str(key))
@@ -287,4 +325,16 @@ if __name__ == "__main__":
     newDir = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking'
     if not os.path.exists(newDir):
         os.makedirs(newDir)
-    dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, 'Tracking250SimulationMatrix30', flow_matrix, 30)
+
+    simulationData = CellDataReader.readCellData(Definitions.DATA_ROOT_DIRECTORY + Definitions.FILE_ID_NAME)
+    CellDataReader.readCellPositions(Definitions.DATA_ROOT_DIRECTORY + Definitions.POSITIONS_FOLDER + '\\',
+                                     simulationData, Definitions.POSITION_FILE_PROTO)
+    dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
+                                  'Tracking250SimulationMatrix30AnnotatedFixed', flow_matrix, 30, Input.ANNOTATED, False)
+    dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
+                                  'Tracking250SimulationMatrix30SimulatedFixed', flow_matrix, 30, Input.SIMULATION, False)
+
+    dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
+                                  'Tracking250SimulationMatrix30AnnotatedFixedRots', flow_matrix, 30, Input.ANNOTATED, True)
+    dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
+                                  'Tracking250SimulationMatrix30SimulatedFixedRots', flow_matrix, 30, Input.SIMULATION, True)

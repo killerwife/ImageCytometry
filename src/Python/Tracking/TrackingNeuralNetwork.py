@@ -3,10 +3,10 @@ import Dataset
 import random
 
 PATH_TO_DATASETS = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\'
-DATASET_NAME = 'trainTracking250SimulationMatrixFixed.record'
+DATASET_NAME = 'trainTracking250SimulationMatrix30AnnotatedFixed.record'
 NEURAL_NETWORK_OUTPUT_DIR = 'trainingOutput\\'
-MODEL_NAME = 'trackingNeuralNetwork'
-NUM_OF_ITERATIONS = 100000
+MODEL_NAME = 'trackingNeuralNetworkAnnotated'
+NUM_OF_ITERATIONS = 1000000
 img_size = 30
 num_channels = 5
 outputSize = 2
@@ -196,18 +196,31 @@ def train(num_iteration, trackingDataset, batch_size, optimizer, cost, accuracy,
     tf.random.set_random_seed(2)
     validationStart = int(allSamples * 60 / 100)
     validationStop = int(allSamples * 80 / 100)
-    tfDatasetFull = tf.data.Dataset.from_tensor_slices({'x_batch': trackingDataset.features[:validationStop],
-                                                            'y_true': trackingDataset.response[:validationStop]})
+    print('Started composing dataset')
+    x_batch_placeholder = tf.placeholder(tf.float32)
+    y_true_placeholder = tf.placeholder(tf.float32)
+    tfDatasetFull = tf.data.Dataset.from_tensor_slices((x_batch_placeholder, y_true_placeholder))
+
+    #{'x_batch': trackingDataset.features[:validationStop], 'y_true': trackingDataset.response[:validationStop]}
+    print('Started shuffling dataset')
     tfDatasetFull = tfDatasetFull.shuffle(validationStop)
     tfDatasetTraining = tfDatasetFull.take(validationStart)
     tfDatasetValidation = tfDatasetFull.skip(validationStart)
 
+    print('Composed dataset and repeating')
     datasetBatchTrain = tfDatasetTraining.batch(batch_size).repeat().shuffle(int(validationStart / 2))
-    iteratorTrain = datasetBatchTrain.make_one_shot_iterator()
+    iteratorTrain = datasetBatchTrain.make_initializable_iterator()
     datasetBatchValidate = tfDatasetValidation.batch(batch_size).repeat()
-    iteratorValidate = datasetBatchValidate.make_one_shot_iterator()
+    iteratorValidate = datasetBatchValidate.make_initializable_iterator()
     next_elementTrain = iteratorTrain.get_next()
     next_elementValidate = iteratorValidate.get_next()
+    print('Dataset done')
+
+    session.run(iteratorTrain.initializer, feed_dict={x_batch_placeholder: trackingDataset.features[:validationStop],
+                                                      y_true_placeholder: trackingDataset.response[:validationStop]})
+
+    session.run(iteratorValidate.initializer, feed_dict={x_batch_placeholder: trackingDataset.features[:validationStop],
+                                                         y_true_placeholder: trackingDataset.response[:validationStop]})
 
     for i in range(total_iterations, total_iterations + num_iteration):
         # x_batch = trackingDataset.features[validation:]
@@ -215,11 +228,11 @@ def train(num_iteration, trackingDataset, batch_size, optimizer, cost, accuracy,
         # x_valid_batch = trackingDataset.features[:validation]
         # y_valid_batch = trackingDataset.response[:validation]
 
-        resultDatasetTrain = session.run(next_elementTrain)
-        resultDatasetValidate = session.run(next_elementValidate)
+        resultDatasetTrain_x_batch, resultDatasetTrain_y_true = session.run(next_elementTrain)
+        resultDatasetValidate_x_batch, resultDatasetValidate_y_true = session.run(next_elementValidate)
 
-        feed_dict_tr = {x: resultDatasetTrain['x_batch'], y_true: resultDatasetTrain['y_true']}
-        feed_dict_val = {x: resultDatasetValidate['x_batch'], y_true: resultDatasetValidate['y_true']}
+        feed_dict_tr = {x: resultDatasetTrain_x_batch, y_true: resultDatasetTrain_y_true}
+        feed_dict_val = {x: resultDatasetValidate_x_batch, y_true: resultDatasetValidate_y_true}
 
         session.run(optimizer, feed_dict=feed_dict_tr)
         if i % (validationStart / batch_size) == 0:

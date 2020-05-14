@@ -150,12 +150,16 @@ def processImages(annotatedData, predictedData, datasetSegment, modelName, parti
         totalHits[0], totalHits[1], totalHits[2], totalDistances[0], totalDistances[1], totalMissed, totalFalsePositives, totalObjects, precision, recall))
 
 
-def loadAndProcess(firstVideo, modelName, datasetSegment):
+def loadAndProcess(firstVideo, grayscale, modelName, datasetSegment):
     if firstVideo:
         ANNOTATIONS_FILE_NAME = 'tracks_1_300.xml'
     else:
         ANNOTATIONS_FILE_NAME = 'deformabilityAnnotations.xml'
         modelName += 'SecondVideo'
+
+    if grayscale:
+        modelName += 'Grayscale'
+
     fileNamePredicted = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\' + ANNOTATIONS_FILE_NAME
     fileNameAnnotated = 'D:\\BigData\\cellinfluid\\Annotations\\PredictedAnnotations\\tracks_1_300_' + modelName + '.xml'
     annotatedData = []
@@ -200,39 +204,61 @@ if not os.path.exists(newDir):
 # loadAndProcess(False, 'model08042019-250')
 # loadAndProcess(False, 'fixedSSDExperiment250100000')
 
-loadAndProcess(True, 'model21032019-250And50', DatasetSegment(250, 300, 200, 250))
-loadAndProcess(True, 'model21032019_02-250And50', DatasetSegment(250, 300, 200, 250))
-loadAndProcess(True, 'model08042019-250And50', DatasetSegment(250, 300, 200, 250))
-loadAndProcess(True, 'fixedSSDExperiment250And50100000', DatasetSegment(250, 300, 200, 250))
-loadAndProcess(True, 'fixedSSDExperimentV2250And50100000', DatasetSegment(250, 300, 200, 250))
-loadAndProcess(True, 'fixedSSDExperimentV3250And50100000', DatasetSegment(250, 300, 200, 250))
+# loadAndProcess(True, 'model21032019-250And50', DatasetSegment(250, 300, 200, 250))
+# loadAndProcess(True, 'model21032019_02-250And50', DatasetSegment(250, 300, 200, 250))
+# loadAndProcess(True, 'model08042019-250And50', DatasetSegment(250, 300, 200, 250))
+# loadAndProcess(True, 'fixedSSDExperiment250And50100000', DatasetSegment(250, 300, 200, 250))
+# loadAndProcess(True, 'fixedSSDExperimentV2250And50100000', DatasetSegment(250, 300, 200, 250))
+# loadAndProcess(True, 'fixedSSDExperimentV3250And50100000', DatasetSegment(250, 300, 200, 250))
+#
+# loadAndProcess(False, 'model21032019-250And50', DatasetSegment(50, 100, 30, 50))
+# loadAndProcess(False, 'model21032019_02-250And50', DatasetSegment(50, 100, 30, 50))
+# loadAndProcess(False, 'model08042019-250And50', DatasetSegment(50, 100, 30, 50))
+# loadAndProcess(False, 'fixedSSDExperiment250And50100000', DatasetSegment(50, 100, 30, 50))
+# loadAndProcess(False, 'fixedSSDExperimentV2250And50100000', DatasetSegment(50, 100, 30, 50))
+# loadAndProcess(False, 'fixedSSDExperimentV3250And50100000', DatasetSegment(50, 100, 30, 50))
+#
+# loadAndProcess(True, False, 'model21032019_02-250And50-1100000', DatasetSegment(0, 50, 200, 250))
+# loadAndProcess(True, False, 'model21032019_02-250And50-2100000', DatasetSegment(50, 100, 100, 150))
+# loadAndProcess(True, False, 'model21032019_02-250And50-3100000', DatasetSegment(100, 150, 200, 250))
+# loadAndProcess(True, False, 'model21032019_02-250And50-4100000', DatasetSegment(150, 200, 0, 50))
+# loadAndProcess(True, False, 'model21032019-250And50-1100000', DatasetSegment(0, 50, 200, 250))
+# loadAndProcess(True, False, 'model21032019-250And50-2100000', DatasetSegment(50, 100, 100, 150))
+# loadAndProcess(True, False, 'model21032019-250And50-3100000', DatasetSegment(100, 150, 200, 250))
+# loadAndProcess(True, False, 'model21032019-250And50-4100000', DatasetSegment(150, 200, 0, 50))
+# loadAndProcess(True, False, 'model08042019-250And50-1100000', DatasetSegment(0, 50, 200, 250))
+# loadAndProcess(True, False, 'model08042019-250And50-2100000', DatasetSegment(50, 100, 100, 150))
+# loadAndProcess(True, False, 'model08042019-250And50-3100000', DatasetSegment(100, 150, 200, 250))
+# loadAndProcess(True, False, 'model08042019-250And50-4100000', DatasetSegment(150, 200, 0, 50))
+#
+# loadAndProcess(False, False, 'model21032019_02-250And50-1100000', DatasetSegment(0, 50, 80, 100))
+# loadAndProcess(False, False, 'model21032019_02-250And50-2100000', DatasetSegment(0, 50, 50, 70))
+# loadAndProcess(False, False, 'model21032019_02-250And50-3100000', DatasetSegment(50, 100, 0, 20))
+# loadAndProcess(False, False, 'model21032019_02-250And50-4100000', DatasetSegment(50, 100, 20, 40))
+# loadAndProcess(False, False, 'model21032019-250And50-1100000', DatasetSegment(0, 50, 80, 100))
+# loadAndProcess(False, False, 'model21032019-250And50-2100000', DatasetSegment(0, 50, 50, 70))
+# loadAndProcess(False, False, 'model21032019-250And50-3100000', DatasetSegment(50, 100, 0, 20))
+# loadAndProcess(False, False, 'model21032019-250And50-4100000', DatasetSegment(50, 100, 20, 40))
+# loadAndProcess(False, False, 'model08042019-250And50-1100000', DatasetSegment(0, 50, 80, 100))
+# loadAndProcess(False, False, 'model08042019-250And50-2100000', DatasetSegment(0, 50, 50, 70))
+# loadAndProcess(False, False, 'model08042019-250And50-3100000', DatasetSegment(50, 100, 0, 20))
+# loadAndProcess(False, False, 'model08042019-250And50-4100000', DatasetSegment(50, 100, 20, 40))
 
-loadAndProcess(False, 'model21032019-250And50', DatasetSegment(50, 100, 30, 50))
-loadAndProcess(False, 'model21032019_02-250And50', DatasetSegment(50, 100, 30, 50))
-loadAndProcess(False, 'model08042019-250And50', DatasetSegment(50, 100, 30, 50))
-loadAndProcess(False, 'fixedSSDExperiment250And50100000', DatasetSegment(50, 100, 30, 50))
-loadAndProcess(False, 'fixedSSDExperimentV2250And50100000', DatasetSegment(50, 100, 30, 50))
-loadAndProcess(False, 'fixedSSDExperimentV3250And50100000', DatasetSegment(50, 100, 30, 50))
+loadAndProcess(True, False, 'FixedSSD-250And50Gray100000', DatasetSegment(250, 300, 200, 250))
+loadAndProcess(True, False, 'FRCNN-250And50Gray100000', DatasetSegment(250, 300, 200, 250))
+loadAndProcess(True, False, 'RFCN-250And50Gray100000', DatasetSegment(250, 300, 200, 250))
 
-loadAndProcess(True, 'model21032019_02-250And50-1100000', DatasetSegment(0, 50, 200, 250))
-loadAndProcess(True, 'model21032019_02-250And50-2100000', DatasetSegment(50, 100, 100, 150))
-loadAndProcess(True, 'model21032019_02-250And50-3100000', DatasetSegment(100, 150, 200, 250))
-loadAndProcess(True, 'model21032019_02-250And50-4100000', DatasetSegment(150, 200, 0, 50))
-loadAndProcess(True, 'model21032019-250And50-1100000', DatasetSegment(0, 50, 200, 250))
-loadAndProcess(True, 'model21032019-250And50-2100000', DatasetSegment(50, 100, 100, 150))
-loadAndProcess(True, 'model21032019-250And50-3100000', DatasetSegment(100, 150, 200, 250))
-loadAndProcess(True, 'model21032019-250And50-4100000', DatasetSegment(150, 200, 0, 50))
-loadAndProcess(True, 'model08042019-250And50-1100000', DatasetSegment(0, 50, 200, 250))
+loadAndProcess(True, True, 'FixedSSD-250And50Gray100000', DatasetSegment(250, 300, 200, 250))
+loadAndProcess(True, True, 'FRCNN-250And50Gray100000', DatasetSegment(250, 300, 200, 250))
+loadAndProcess(True, True, 'RFCN-250And50Gray100000', DatasetSegment(250, 300, 200, 250))
 
-loadAndProcess(False, 'model21032019_02-250And50-1100000', DatasetSegment(0, 50, 80, 100))
-loadAndProcess(False, 'model21032019_02-250And50-2100000', DatasetSegment(0, 50, 50, 70))
-loadAndProcess(False, 'model21032019_02-250And50-3100000', DatasetSegment(50, 100, 0, 20))
-loadAndProcess(False, 'model21032019_02-250And50-4100000', DatasetSegment(50, 100, 20, 40))
-loadAndProcess(False, 'model21032019-250And50-1100000', DatasetSegment(0, 50, 80, 100))
-loadAndProcess(False, 'model21032019-250And50-2100000', DatasetSegment(0, 50, 50, 70))
-loadAndProcess(False, 'model21032019-250And50-3100000', DatasetSegment(50, 100, 0, 20))
-loadAndProcess(False, 'model21032019-250And50-4100000', DatasetSegment(50, 100, 20, 40))
-loadAndProcess(False, 'model08042019-250And50-1100000', DatasetSegment(0, 50, 80, 100))
+loadAndProcess(False, False, 'FixedSSD-250And50Gray100000', DatasetSegment(50, 100, 30, 50))
+loadAndProcess(False, False, 'FRCNN-250And50Gray100000', DatasetSegment(50, 100, 30, 50))
+loadAndProcess(False, False, 'RFCN-250And50Gray100000', DatasetSegment(50, 100, 30, 50))
+
+loadAndProcess(False, True, 'FixedSSD-250And50Gray100000', DatasetSegment(50, 100, 30, 50))
+loadAndProcess(False, True, 'FRCNN-250And50Gray100000', DatasetSegment(50, 100, 30, 50))
+loadAndProcess(False, True, 'RFCN-250And50Gray100000', DatasetSegment(50, 100, 30, 50))
 
 
 

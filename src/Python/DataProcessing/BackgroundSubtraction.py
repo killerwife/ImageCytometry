@@ -40,7 +40,7 @@ class Video(Enum):
     DALSIE = 3
 
 VIDEO = Video.DALSIE
-MODE = BgMode.NO_NORMAL
+MODE = BgMode.SINGLE_IMAGE
 XML = True
 PATH_TO_ANNOTATIONS = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\'
 if VIDEO == Video.CANAL:
@@ -48,7 +48,7 @@ if VIDEO == Video.CANAL:
     ANNOTATIONS_FILE_NAME = 'tracks_1_300.xml'
 elif VIDEO == Video.DEFORMABILITY:
     PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\deformabilityObrazky\\'
-    ANNOTATIONS_FILE_NAME = 'deformabilityAnnotationsAll.xml'
+    ANNOTATIONS_FILE_NAME = 'deformabilityAnnotations.xml'
 elif VIDEO == Video.BETKA:
     PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\BetkaVideo\\'
     ANNOTATIONS_FILE_NAME = 'betkaAnnotations.xml'

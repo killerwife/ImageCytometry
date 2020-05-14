@@ -6,7 +6,6 @@ import cv2
 import XMLRead
 from distutils.version import StrictVersion
 from object_detection.utils import ops as utils_ops
-from utils import label_map_util
 from PIL import Image
 
 sys.path.append("..")
@@ -14,11 +13,7 @@ sys.path.append("..")
 if StrictVersion(tf.__version__) < StrictVersion('1.9.0'):
     raise ImportError('Please upgrade your TensorFlow installation to v1.9.* or later!')
 
-from utils import visualization_utils as vis_util
-
 PATH_TO_LABELS = os.path.join('data', 'C:\\GitHubCode\\phd\\exportedModels\\label_map.txt')
-
-category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
 
 
 def load_image_into_numpy_array(image):
@@ -38,8 +33,6 @@ PATH_TO_ANNOTATIONS = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\'
 PATH_TO_PREDICTED_ANNOTATIONS = 'D:\\BigData\\cellinfluid\\Annotations\\PredictedAnnotations\\'
 
 IMAGE_BATCH = 5
-GRAYSCALE = False
-
 
 def loadGraph(filepath):
     detection_graph = tf.Graph()
@@ -52,7 +45,7 @@ def loadGraph(filepath):
     return detection_graph
 
 
-def run_inference_for_all_files(graph, fileNames, imageArray):
+def run_inference_for_all_files(graph, fileNames, imageArray, grayscale):
     outputData = []
     with graph.as_default():
         with tf.Session() as sess:
@@ -89,7 +82,7 @@ def run_inference_for_all_files(graph, fileNames, imageArray):
             imageIndex = 0
             imageNameIndex = 0
             for image_path in fileNames:
-                if GRAYSCALE:
+                if grayscale:
                     # greyscale read
                     image_np = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
                     image_np = np.expand_dims(image_np, -1)
@@ -133,7 +126,7 @@ def run_inference_for_all_files(graph, fileNames, imageArray):
     return outputData
 
 
-def loadAndSave(pathToAnnotations, annotationsFileName, pathToPredictions, modelName, imageRootDir, pathToGraph):
+def loadAndSave(pathToAnnotations, annotationsFileName, pathToPredictions, modelName, imageRootDir, pathToGraph, grayscale):
     i = 0
     imageArray = []
     fileNamePredicted = pathToAnnotations + annotationsFileName
@@ -145,11 +138,11 @@ def loadAndSave(pathToAnnotations, annotationsFileName, pathToPredictions, model
         fileNames.append(imageRootDir + data.filename)
 
     graph = loadGraph(pathToGraph)
-    outputData = run_inference_for_all_files(graph, fileNames, imageArray)
+    outputData = run_inference_for_all_files(graph, fileNames, imageArray, grayscale)
     XMLRead.writeXML(outputData, fileNameOutput)
 
 
-def loadVariables(firstVideo, background, modelName):
+def loadVariables(firstVideo, background, grayscale, modelName):
     PATH_TO_FROZEN_GRAPH = 'C:\\GitHubCode\\phd\\exportedModels\\' + modelName + '\\frozen_inference_graph.pb'
     if firstVideo == True:
         ANNOTATIONS_FILE_NAME = 'tracks_1_300.xml'
@@ -165,8 +158,11 @@ def loadVariables(firstVideo, background, modelName):
             PATH_TO_IMAGE_ROOT_DIR = 'D:\\BigData\\cellinfluid\\\deformabilityObrazky\\subtractedBackgrounds\\'  # no background - TODO
         modelName += 'SecondVideo'
 
+    if grayscale == True:
+        modelName += 'Grayscale'
+
     loadAndSave(PATH_TO_ANNOTATIONS, ANNOTATIONS_FILE_NAME, PATH_TO_PREDICTED_ANNOTATIONS, modelName,
-                PATH_TO_IMAGE_ROOT_DIR, PATH_TO_FROZEN_GRAPH)
+                PATH_TO_IMAGE_ROOT_DIR, PATH_TO_FROZEN_GRAPH, grayscale)
 
 # loadVariables(True, False, 'fixedSSDExperimentV3250And50100000')
 # loadVariables(False, False, 'fixedSSDExperimentV3250And50100000')
@@ -202,30 +198,56 @@ def loadVariables(firstVideo, background, modelName):
 # loadVariables(False, False, 'model21032019_02-250')
 # loadVariables(False, False, 'model08042019-250')
 
-loadVariables(True, False, 'model21032019-250And50-1100000')
-loadVariables(False, False, 'model21032019-250And50-1100000')
+# Cross validation section
+loadVariables(True, False, False, 'model21032019-250And50-1100000')
+loadVariables(False, False, False, 'model21032019-250And50-1100000')
 
-loadVariables(True, False, 'model21032019-250And50-2100000')
-loadVariables(False, False, 'model21032019-250And50-2100000')
+loadVariables(True, False, False, 'model21032019-250And50-2100000')
+loadVariables(False, False, False, 'model21032019-250And50-2100000')
 
-loadVariables(True, False, 'model21032019-250And50-3100000')
-loadVariables(False, False, 'model21032019-250And50-3100000')
+loadVariables(True, False, False, 'model21032019-250And50-3100000')
+loadVariables(False, False, False, 'model21032019-250And50-3100000')
 
-loadVariables(True, False, 'model21032019-250And50-4100000')
-loadVariables(False, False, 'model21032019-250And50-4100000')
+loadVariables(True, False, False, 'model21032019-250And50-4100000')
+loadVariables(False, False, False, 'model21032019-250And50-4100000')
 
-loadVariables(True, False, 'model21032019_02-250And50-1100000')
-loadVariables(False, False, 'model21032019_02-250And50-1100000')
+loadVariables(True, False, False, 'model21032019_02-250And50-1100000')
+loadVariables(False, False, False, 'model21032019_02-250And50-1100000')
 
-loadVariables(True, False, 'model21032019_02-250And50-2100000')
-loadVariables(False, False, 'model21032019_02-250And50-2100000')
+loadVariables(True, False, False, 'model21032019_02-250And50-2100000')
+loadVariables(False, False, False, 'model21032019_02-250And50-2100000')
 
-loadVariables(True, False, 'model21032019_02-250And50-3100000')
-loadVariables(False, False, 'model21032019_02-250And50-3100000')
+loadVariables(True, False, False, 'model21032019_02-250And50-3100000')
+loadVariables(False, False, False, 'model21032019_02-250And50-3100000')
 
-loadVariables(True, False, 'model21032019_02-250And50-4100000')
-loadVariables(False, False, 'model21032019_02-250And50-4100000')
+loadVariables(True, False, False, 'model21032019_02-250And50-4100000')
+loadVariables(False, False, False, 'model21032019_02-250And50-4100000')
 
-loadVariables(True, False, 'model08042019-250And50-1100000')
-loadVariables(False, False, 'model08042019-250And50-1100000')
+loadVariables(True, False, False, 'model08042019-250And50-1100000')
+loadVariables(False, False, False, 'model08042019-250And50-1100000')
+
+loadVariables(True, False, False, 'model08042019-250And50-2100000')
+loadVariables(False, False, False, 'model08042019-250And50-2100000')
+
+loadVariables(True, False, False, 'model08042019-250And50-3100000')
+loadVariables(False, False, False, 'model08042019-250And50-3100000')
+
+loadVariables(True, False, False, 'model08042019-250And50-4100000')
+loadVariables(False, False, False, 'model08042019-250And50-4100000')
+
+# Grayscale section
+# loadVariables(True, False, False, 'FixedSSD-250And50Gray100000')
+# loadVariables(False, False, False, 'FixedSSD-250And50Gray100000')
+# loadVariables(True, False, True, 'FixedSSD-250And50Gray100000')
+# loadVariables(False, False, True, 'FixedSSD-250And50Gray100000')
+#
+# loadVariables(True, False, False, 'FRCNN-250And50Gray100000')
+# loadVariables(False, False, False, 'FRCNN-250And50Gray100000')
+# loadVariables(True, False, True, 'FRCNN-250And50Gray100000')
+# loadVariables(False, False, True, 'FRCNN-250And50Gray100000')
+#
+# loadVariables(True, False, False, 'RFCN-250And50Gray100000')
+# loadVariables(False, False, False, 'RFCN-250And50Gray100000')
+# loadVariables(True, False, True, 'RFCN-250And50Gray100000')
+# loadVariables(False, False, True, 'RFCN-250And50Gray100000')
 

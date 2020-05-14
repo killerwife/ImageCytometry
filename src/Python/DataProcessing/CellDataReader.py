@@ -1,6 +1,7 @@
 import cv2
 import Definitions
 import math
+import XMLRead
 
 
 class CellPosition(object):
@@ -231,19 +232,59 @@ def readCellData(filename):
 
 
 def readCellPositions(directory, cells, positionFileProto):
+    highestId = 0
+    for cell in cells:
+        if cell.id > highestId:
+            highestId = cell.id
+
+    highestId += 1
+    addedCells = []
     for cell in cells:
         print(directory + positionFileProto.format(cell.id))
+        currentCell = cell
         with open(directory + positionFileProto.format(cell.id)) as file:
             for line in file:
                 lineSplit = line.split()
                 if len(lineSplit) < 3:
+                    currentCell = CellData()
+                    currentCell.id = highestId
+                    currentCell.radius = cell.radius
+                    currentCell.variant = cell.variant
+                    addedCells.append(currentCell)
+                    highestId += 1
                     continue
                 cellPos = CellPosition()
                 cellPos.id = int(lineSplit[0])
                 cellPos.x = int(float(lineSplit[1]) * 3)
                 cellPos.y = int(float(lineSplit[2]) * 3)
                 cellPos.z = int(float(lineSplit[3]) * 3)
-                cell.cellPositions.append(cellPos)
+                currentCell.cellPositions.append(cellPos)
+
+    for addedCell in addedCells:
+        if len(addedCell.cellPositions) > 0:
+            cells.append(addedCell)
+
+
+def parseTrackInfo(cells):
+    tracks = {}
+    for cell in cells:
+        for cellPos in cell.cellPositions:
+            trackedBoundingBox = XMLRead.TrackedBoundingBox()
+            trackedBoundingBox.frameId = cellPos.id
+            trackedBoundingBox.x = cellPos.x
+            trackedBoundingBox.y = cellPos.y
+            trackedBoundingBox.trackId = cell.id
+            trackedBoundingBox.height = cell.radius
+            trackedBoundingBox.width = cell.radius
+            if cell.id not in tracks:
+                track = XMLRead.Track()
+                track.trackId = cell.id
+                tracks[cell.id] = track
+
+            tracks[cell.id].boundingBoxes.append(trackedBoundingBox)
+
+    return tracks
+
 
 
 def validateCellPositions(cells):

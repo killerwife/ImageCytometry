@@ -403,7 +403,7 @@ def simple_tracking(max_dist):
     print('simple tracking: done. '+str(len(tracks))+ ' tracks')
     return tracks, unresolved
 # ----------------------------------------------------------------------------
-def simple_joining(tracks,threshold):
+def simple_joining(tracks, threshold, flow_matrix):
     print('simple joining with threshold set to '+str(threshold)+' and '+str(len(tracks))+ ' tracks : ')
     print('\tcalculating...')
     original_tracks = []
@@ -479,8 +479,7 @@ def can_join(last, first, tracks):
     else:
         return True
 # --------------------------------------------------------------------------------------------
-def can_append_start(track, unresolved):
-    global flow_matrix
+def can_append_start(track, unresolved, flow_matrix):
     vector_2 = get_vector(track[1][0], track[1][1], track[0][0], track[0][1])
     vector_1 = flow_matrix[unresolved[0]][unresolved[1]][1]
     vector_v = get_vector(track[0][0], track[0][1],unresolved[0], unresolved[1])
@@ -494,8 +493,7 @@ def can_append_start(track, unresolved):
     else:
         return True
 # --------------------------------------------------------------------------------------------
-def can_append_end(track, unresolved):
-    global flow_matrix
+def can_append_end(track, unresolved, flow_matrix):
     vector_2 = flow_matrix[unresolved[0]][unresolved[1]][1]
     vector_1 = get_vector(track[-2][0], track[-2][1], track[-1][0], track[-1][1])
     vector_v = get_vector(unresolved[0], unresolved[1],track[-1][0], track[-1][1])
@@ -631,7 +629,7 @@ def find_multiple_merge(adepts):
     return series
 
 #upravit nezaradene body podla matice MAT
-def try_resolve_2(tracks, matrix, threshold):
+def try_resolve_2(tracks, matrix, threshold, flow_matrix):
     num = 0
     for track_index in range(len(tracks)):
         if not tracks[track_index]:
@@ -649,13 +647,13 @@ def try_resolve_2(tracks, matrix, threshold):
             for unresolved_index in range(len(matrix[frame_last + 1])):
                 # bod musi byt nezaradeny
                 if matrix[frame_last + 1][unresolved_index][2] == 0 and \
-                    can_append_end(tracks[track_index], matrix[frame_last + 1][unresolved_index]):
+                    can_append_end(tracks[track_index], matrix[frame_last + 1][unresolved_index], flow_matrix):
                     candidates_end.append( matrix[frame_last + 1][unresolved_index])
         if frame_first != 0:
             for unresolved_index in range(len(matrix[frame_first - 1])):
                 # bod musi byt nezaradeny
                 if matrix[frame_first - 1][unresolved_index][2] == 0 and \
-                        can_append_start(tracks[track_index], matrix[frame_first - 1][unresolved_index]):
+                        can_append_start(tracks[track_index], matrix[frame_first - 1][unresolved_index], flow_matrix):
                     candidates_start.append(matrix[frame_first - 1][unresolved_index])
         # print(candidates_end)
         # print(candidates_start)
@@ -772,10 +770,9 @@ def try_resolve(tracks, unresolved, threshold):
 
     return tracks,new_unresolved
 # -------------------------------------------------------------------------------------------------
-def get_points_in_flow_matrix():
+def get_points_in_flow_matrix(flow_matrix):
     not_in_tracks = 0
     in_tracks = 0
-    global flow_matrix
     for i in range(len(flow_matrix)):
         for j in range(len(flow_matrix[i])):
             if(flow_matrix[i][j][0] == 0):
@@ -956,7 +953,7 @@ def main():
     flowMatrixFileName = ''
     frameCount = 300
     oldFormat = False
-    flowMatrixSimulation = True
+    flowMatrixSimulation = False
     evalAnnotatedTracks = False
     x = 1280
     y = 720
@@ -991,14 +988,14 @@ def main():
             dist = int(parameters[0])
             a = int(parameters[1])
             b = int(parameters[2])
-            tracks, unresolved_from_tracking = predicting_tracking(dist, a, b)
+            tracks, unresolved_from_tracking = predicting_tracking(dist, a, b, mat)
 
         if flowMatrixSimulation:
-            flowMatrixNew = CellDataReader.FlowMatrix(int(x), int(y))
+            flowMatrixNew = CellDataReader.FlowMatrix(int(x), int(y), 3)
             flowMatrixNew.readFlowMatrix(Definitions.DATA_ROOT_DIRECTORY + Definitions.FLOW_MATRIX_FILE)
             flow_matrix = flowMatrixNew.convertToOldArrayType()
         else:
-            flowMatrixCreator = CellDataReader.FlowMatrix(int(x), int(y))
+            flowMatrixCreator = CellDataReader.FlowMatrix(int(x), int(y), 3)
             flow_matrix = flowMatrixCreator.oldFlowMatrix(tracks, unresolved_from_tracking)
 
         merged_tracks = tracks.copy()
@@ -1011,7 +1008,7 @@ def main():
         # Tracking.merge_tracks(merged_tracks, unresolved_from_tracking, 10, 12)
 
         while join:
-            adepts, original_tracks = simple_joining(merged_tracks, int(join_dist))
+            adepts, original_tracks = simple_joining(merged_tracks, int(join_dist), flow_matrix)
             if len(adepts) == 0:
                 print('There is nothing to merge. ')
                 break
@@ -1033,7 +1030,7 @@ def main():
         resolve = True
 
         while resolve:
-            num = try_resolve_2(merged_tracks, mat, int(resolve_dist))
+            num = try_resolve_2(merged_tracks, mat, int(resolve_dist), flow_matrix)
             if num == 0:
                 break
 
@@ -1072,7 +1069,7 @@ def main():
     else:
         tracksOtherFormat = XMLRead.initTracks(annotatedData)
         Tracking.print_info(tracksOtherFormat, len(annotatedData))
-    save = 'n'
+    save = 'y'
     if save == 'y' or save == 'yes' or save == 'Y' or save == 'YES':
         file_name = input('1 File name for anastroj export: ')
         XMLParser.save_as_anastroj_file(mat, merged_tracks, src_names, xml_dir + file_name + '.xml')

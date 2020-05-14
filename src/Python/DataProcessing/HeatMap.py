@@ -2,8 +2,8 @@ import XMLRead
 import numpy as np
 import cv2
 
-PATH_TO_ANNOTATED_DATA = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\' + 'tracks_1_300.xml'
-PATH_TO_BACKGROUND = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\background.png'
+PATH_TO_ANNOTATED_DATA = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\' + 'deformabilityAnnotations.xml'
+PATH_TO_BACKGROUND = 'D:\\BigData\\cellinfluid\\backgrounds\\backgroundDeform.png'
 annotatedData = []
 XMLRead.readXML(PATH_TO_ANNOTATED_DATA, annotatedData)
 heatMap = np.zeros((720, 1280))
