@@ -243,7 +243,8 @@ class Dataset(object):
                 for i in range(4):
                     if i != 0:
                         np.rot90(array)
-                        array[0], array[1] = array[1], array[0]
+                        array[int(size / 2)][int(size / 2)][0], array[int(size / 2)][int(size / 2)][1] =\
+                            -array[int(size / 2)][int(size / 2)][1], array[int(size / 2)][int(size / 2)][0]
                         np.multiply(array[0], -1)
                         temp = tempFutureVelX
                         tempFutureVelX = -tempFutureVelY
@@ -329,12 +330,12 @@ if __name__ == "__main__":
     simulationData = CellDataReader.readCellData(Definitions.DATA_ROOT_DIRECTORY + Definitions.FILE_ID_NAME)
     CellDataReader.readCellPositions(Definitions.DATA_ROOT_DIRECTORY + Definitions.POSITIONS_FOLDER + '\\',
                                      simulationData, Definitions.POSITION_FILE_PROTO)
-    dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
-                                  'Tracking250SimulationMatrix30AnnotatedFixed', flow_matrix, 30, Input.ANNOTATED, False)
-    dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
-                                  'Tracking250SimulationMatrix30SimulatedFixed', flow_matrix, 30, Input.SIMULATION, False)
+    # dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
+    #                               'Tracking250SimulationMatrix30AnnotatedFixed', flow_matrix, 30, Input.ANNOTATED, False)
+    # dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
+    #                               'Tracking250SimulationMatrix30SimulatedFixed', flow_matrix, 30, Input.SIMULATION, False)
 
     dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
-                                  'Tracking250SimulationMatrix30AnnotatedFixedRots', flow_matrix, 30, Input.ANNOTATED, True)
-    dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
-                                  'Tracking250SimulationMatrix30SimulatedFixedRots', flow_matrix, 30, Input.SIMULATION, True)
+                                  'Tracking250SimulationMatrix31AnnotatedFixedRots', flow_matrix, 31, Input.ANNOTATED, True)
+    # dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
+    #                               'Tracking250SimulationMatrix30SimulatedFixedRots', flow_matrix, 30, Input.SIMULATION, True)
