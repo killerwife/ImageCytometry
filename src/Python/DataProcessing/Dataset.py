@@ -242,15 +242,20 @@ class Dataset(object):
                 tempFutureVelY = futureVelocityY
                 for i in range(4):
                     if i != 0:
-                        np.rot90(array)
+                        array = np.rot90(array)
                         array[int(size / 2)][int(size / 2)][0], array[int(size / 2)][int(size / 2)][1] =\
                             -array[int(size / 2)][int(size / 2)][1], array[int(size / 2)][int(size / 2)][0]
+                        if array[int(size / 2)][int(size / 2)][0] == -0.0:
+                            array[int(size / 2)][int(size / 2)][0] = abs(array[int(size / 2)][int(size / 2)][0])
                         np.multiply(array[0], -1)
-                        temp = tempFutureVelX
-                        tempFutureVelX = -tempFutureVelY
-                        tempFutureVelY = temp
-                        array[3], array[4] = array[4], array[3]
-                        np.multiply(array[3], -1)
+                        tempFutureVelX, tempFutureVelY = -tempFutureVelY, tempFutureVelX
+                        if tempFutureVelX == -0.0:
+                            tempFutureVelX = abs(tempFutureVelX)
+                        for i in range(size):
+                            for k in range(size):
+                                array[i][k][3], array[i][k][4] = -array[i][k][4], array[i][k][3]
+                                if array[i][k][3] == -0.0:
+                                    array[i][k][3] = abs(array[i][k][3])
                     tf_example = self.createTrackingTFRecord(array, size, size, trackedBoundingBox.x,
                                                              trackedBoundingBox.y, [tempFutureVelX, tempFutureVelY])
                     writers[0].write(tf_example.SerializeToString())
@@ -331,7 +336,7 @@ if __name__ == "__main__":
     CellDataReader.readCellPositions(Definitions.DATA_ROOT_DIRECTORY + Definitions.POSITIONS_FOLDER + '\\',
                                      simulationData, Definitions.POSITION_FILE_PROTO)
     # dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
-    #                               'Tracking250SimulationMatrix30AnnotatedFixed', flow_matrix, 30, Input.ANNOTATED, False)
+    #                               'Tracking250SimulationMatrix31AnnotatedFixed', flow_matrix, 31, Input.ANNOTATED, False)
     # dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
     #                               'Tracking250SimulationMatrix30SimulatedFixed', flow_matrix, 30, Input.SIMULATION, False)
 

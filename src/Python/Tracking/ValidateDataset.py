@@ -7,18 +7,29 @@ import cv2
 session = tf.Session()
 
 dataset = Dataset.Dataset()
-trackingDataset = dataset.loadFromDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\trainTracking250SimulationMatrixFixed.record')
+size = 31
+channels = 5
+rots = 4
+trackingDataset = dataset.loadFromDataset('C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\trainTracking250SimulationMatrix31AnnotatedFixedRots.record', size, channels)
 
-for l in range(5):
-    for i in range(len(trackingDataset.features[0])):
-        for k in range(len(trackingDataset.features[0][i])):
-            print(trackingDataset.features[0][i][k][l], end=" ")
-        print()
-    print()
 
-print('X: ' + str(trackingDataset.x[0]) + ' Y: ' + str(trackingDataset.y[0]) + ' Width: ' + str(trackingDataset.width[0]) + ' Height: ' + str(trackingDataset.height[0]))
-print([trackingDataset.features[0][30][30][0], trackingDataset.features[0][30][30][1]])
-print(trackingDataset.response[0])
+file = open("outputRots.txt", "w")
+
+for sampleId in range(rots):
+    for l in range(channels):
+        for i in range(len(trackingDataset.features[sampleId])):
+            for k in range(len(trackingDataset.features[sampleId][i])):
+                file.write(str(trackingDataset.features[sampleId][i][k][l]) + ' ')
+            file.write('\n')
+        file.write('\n')
+    file.write('Feature values:' + str(trackingDataset.features[sampleId][int(size / 2)][int(size / 2)][0]) + ' ' + str(
+        trackingDataset.features[sampleId][int(size / 2)][int(size / 2)][1]) + '\n')
+    file.write('Response value' + str(trackingDataset.response[sampleId][0]) + ' '
+               + str(trackingDataset.response[sampleId][1]))
+
+file.write('X: ' + str(trackingDataset.x[0]) + ' Y: ' + str(trackingDataset.y[0]) + ' Width: ' +
+           str(trackingDataset.width[0]) + ' Height: ' + str(trackingDataset.height[0]) + '\n')
+file.close()
 
 # PATH_TO_BACKGROUND = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\background.png'
 # image = cv2.imread(PATH_TO_BACKGROUND)
