@@ -110,10 +110,10 @@ class FlowMatrix(object):
         def get_distance(a, b):
             return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
 
-        def create_flow_matrix(x, y):
+        def create_flow_matrix(width, height):
             # vytvorenie prazdnej matice o velkosti XxY
             # print('Creating matrix...')
-            matrix = [[[-1, []] for j in range(y)] for i in range(x)]
+            matrix = [[[-1, []] for j in range(height)] for i in range(width)]
             return matrix
 
         def calculate_flow_matrix(flow_matrix, tracks):

@@ -248,7 +248,7 @@ def train(num_iteration, trackingDataset, batch_size, optimizer, cost, accuracy,
 session = tf.Session()
 
 dataset = Dataset.Dataset()
-trackingDataset = dataset.loadFromDataset(PATH_TO_DATASETS + DATASET_NAME, img_size)
+trackingDataset = dataset.loadFromDataset(PATH_TO_DATASETS + DATASET_NAME, img_size, num_channels)
 outputName = NEURAL_NETWORK_OUTPUT_DIR + MODEL_NAME
 
 optimizer, cost, accuracy, x, y_true = designNeuralNetwork(img_size, num_channels, outputSize)

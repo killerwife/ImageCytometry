@@ -262,14 +262,14 @@ class Dataset(object):
             print('Processed track: ' + str(key))
         print('Saved ' + str(entries) + ' to dataset.')
 
-    def loadFromDataset(self, filename, size):
+    def loadFromDataset(self, filename, size, numChannels):
         record = tf.data.TFRecordDataset(filename)
         feature_description = {
             'data/height': tf.FixedLenFeature([], tf.int64),
             'data/width': tf.FixedLenFeature([], tf.int64),
             'data/x': tf.FixedLenFeature([], tf.int64),
             'data/y': tf.FixedLenFeature([], tf.int64),
-            'data/features': tf.FixedLenFeature([size, size, 5], tf.float32),
+            'data/features': tf.FixedLenFeature([size, size, numChannels], tf.float32),
             'data/response': tf.FixedLenFeature([2], tf.float32),
         }
 

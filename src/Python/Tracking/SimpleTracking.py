@@ -947,8 +947,8 @@ def main():
     # file_name = input('File name for parse: [export_1280x720_3_30_radius_12.xml]')
     # file_name = 'export_1280x720_3_30_radius_12.xml'
 
-    # file_name = 'tracks_1_300_model21032019_02-250And50.xml'
-    file_name = 'tracks_1_300.xml'
+    file_name = 'tracks_1_300_model21032019_02-250And50.xml'
+    # file_name = 'tracks_1_300.xml'
     xml_dir = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\XML\\'
     flowMatrixFileName = ''
     frameCount = 300
