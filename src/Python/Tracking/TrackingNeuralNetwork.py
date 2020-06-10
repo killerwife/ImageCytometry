@@ -1,16 +1,20 @@
 import tensorflow as tf
 import Dataset
 import random
+import os
 
 PATH_TO_DATASETS = 'C:\\GitHubCode\\phd\\ImageCytometry\\src\\TFRecord\\tracking\\'
-DATASET_NAME = 'trainTracking250SimulationMatrix30AnnotatedFixed.record'
+DATASET_NAME = 'trainTracking250SimulationMatrix31AnnotatedFixedRots.record'
 NEURAL_NETWORK_OUTPUT_DIR = 'trainingOutput\\'
+if not os.path.exists(NEURAL_NETWORK_OUTPUT_DIR):
+    os.makedirs(NEURAL_NETWORK_OUTPUT_DIR)
 MODEL_NAME = 'trackingNeuralNetworkAnnotated'
 NUM_OF_ITERATIONS = 1000000
-img_size = 30
+img_size = 31
 num_channels = 5
 outputSize = 2
 batch_size = 32
+resume = False
 
 
 def create_weights(shape):
@@ -177,9 +181,20 @@ def designNeuralNetwork(img_size, num_channels, output_size):
 
     named_last_layer = tf.identity(layer_fc1, name="y_pred")
 
-    cost = tf.reduce_mean(tf.square(tf.subtract(named_last_layer, y_true)))
-    optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
-    accuracy = tf.reduce_sum(tf.abs(tf.subtract(named_last_layer, y_true)))
+    cost = tf.reduce_mean(tf.square(tf.subtract(named_last_layer, y_true)), name="cost")
+    optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost, name="optimizer")
+    accuracy = tf.reduce_sum(tf.abs(tf.subtract(named_last_layer, y_true)), name="accuracy")
+    return optimizer, cost, accuracy, x, y_true
+
+
+def loadNeuralNetwork(modelname):
+    saver = tf.train.import_meta_graph(modelname + '.meta')
+    graph = tf.get_default_graph()
+    optimizer = graph.get_tensor_by_name("cost:0")
+    cost = graph.get_tensor_by_name("optimizer:0")
+    accuracy = graph.get_tensor_by_name("accuracy:0")
+    x = graph.get_tensor_by_name("x:0")
+    y_true = graph.get_tensor_by_name("y_true:0")
     return optimizer, cost, accuracy, x, y_true
 
 
@@ -235,10 +250,10 @@ def train(num_iteration, trackingDataset, batch_size, optimizer, cost, accuracy,
         feed_dict_val = {x: resultDatasetValidate_x_batch, y_true: resultDatasetValidate_y_true}
 
         session.run(optimizer, feed_dict=feed_dict_tr)
-        if i % (validationStart / batch_size) == 0:
+        if i % (validationStart) == 0:
             train_loss = session.run(cost, feed_dict=feed_dict_tr)
             val_loss = session.run(cost, feed_dict=feed_dict_val)
-            epoch = int(i / int(validationStart / batch_size))
+            epoch = int(i / int(validationStart))
 
             show_progress(accuracy, epoch, train_loss, feed_dict_tr, feed_dict_val, val_loss)
             saver.save(session, outputName)
@@ -251,7 +266,10 @@ dataset = Dataset.Dataset()
 trackingDataset = dataset.loadFromDataset(PATH_TO_DATASETS + DATASET_NAME, img_size, num_channels)
 outputName = NEURAL_NETWORK_OUTPUT_DIR + MODEL_NAME
 
-optimizer, cost, accuracy, x, y_true = designNeuralNetwork(img_size, num_channels, outputSize)
+if resume == False:
+    optimizer, cost, accuracy, x, y_true = designNeuralNetwork(img_size, num_channels, outputSize)
+else:
+    optimizer, cost, accuracy, x, y_true = loadNeuralNetwork(outputName)
 
 session.run(tf.global_variables_initializer())
 
