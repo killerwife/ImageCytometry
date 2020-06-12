@@ -335,12 +335,12 @@ if __name__ == "__main__":
     simulationData = CellDataReader.readCellData(Definitions.DATA_ROOT_DIRECTORY + Definitions.FILE_ID_NAME)
     CellDataReader.readCellPositions(Definitions.DATA_ROOT_DIRECTORY + Definitions.POSITIONS_FOLDER + '\\',
                                      simulationData, Definitions.POSITION_FILE_PROTO)
-    # dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
-    #                               'Tracking250SimulationMatrix31AnnotatedFixed', flow_matrix, 31, Input.ANNOTATED, False)
+    dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
+                                  'Tracking250SimulationMatrix31AnnotatedFixed', flow_matrix, 31, Input.ANNOTATED, False)
     # dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
     #                               'Tracking250SimulationMatrix30SimulatedFixed', flow_matrix, 30, Input.SIMULATION, False)
 
-    dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
-                                  'Tracking250SimulationMatrix31AnnotatedFixedRots', flow_matrix, 31, Input.ANNOTATED, True)
+    # dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
+    #                               'Tracking250SimulationMatrix31AnnotatedFixedRots', flow_matrix, 31, Input.ANNOTATED, True)
     # dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
     #                               'Tracking250SimulationMatrix30SimulatedFixedRots', flow_matrix, 30, Input.SIMULATION, True)

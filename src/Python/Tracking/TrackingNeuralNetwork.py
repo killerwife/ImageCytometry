@@ -14,7 +14,7 @@ img_size = 31
 num_channels = 5
 outputSize = 2
 batch_size = 32
-resume = False
+resume = True
 
 
 def create_weights(shape):
@@ -205,8 +205,7 @@ def show_progress(accuracy, epoch, train_loss, feed_dict_train, feed_dict_valida
     print(msg.format(epoch + 1, acc, val_acc, val_loss, train_loss))
 
 
-def train(num_iteration, trackingDataset, batch_size, optimizer, cost, accuracy, x, y_true):
-    total_iterations = 0
+def train(num_iteration, currentIterations, trackingDataset, batch_size, optimizer, cost, accuracy, x, y_true):
     allSamples = len(trackingDataset.features)
     tf.random.set_random_seed(2)
     validationStart = int(allSamples * 60 / 100)
@@ -237,7 +236,7 @@ def train(num_iteration, trackingDataset, batch_size, optimizer, cost, accuracy,
     session.run(iteratorValidate.initializer, feed_dict={x_batch_placeholder: trackingDataset.features[:validationStop],
                                                          y_true_placeholder: trackingDataset.response[:validationStop]})
 
-    for i in range(total_iterations, total_iterations + num_iteration):
+    for i in range(currentIterations, num_iteration):
         # x_batch = trackingDataset.features[validation:]
         # y_true_batch = trackingDataset.response[validation:]
         # x_valid_batch = trackingDataset.features[:validation]
@@ -257,8 +256,11 @@ def train(num_iteration, trackingDataset, batch_size, optimizer, cost, accuracy,
 
             show_progress(accuracy, epoch, train_loss, feed_dict_tr, feed_dict_val, val_loss)
             saver.save(session, outputName)
+            f = open(outputName + '.txt', "w")
+            f.write(str(i))
+            f.close()
 
-    total_iterations += num_iteration
+    currentIterations += num_iteration
 
 session = tf.Session()
 
@@ -266,17 +268,28 @@ dataset = Dataset.Dataset()
 trackingDataset = dataset.loadFromDataset(PATH_TO_DATASETS + DATASET_NAME, img_size, num_channels)
 outputName = NEURAL_NETWORK_OUTPUT_DIR + MODEL_NAME
 
-if resume == False:
-    optimizer, cost, accuracy, x, y_true = designNeuralNetwork(img_size, num_channels, outputSize)
-else:
-    optimizer, cost, accuracy, x, y_true = loadNeuralNetwork(outputName)
-
+optimizer, cost, accuracy, x, y_true = designNeuralNetwork(img_size, num_channels, outputSize)
 session.run(tf.global_variables_initializer())
 
 saver = tf.train.Saver()
+currentIterations = 1
 
-train(num_iteration=NUM_OF_ITERATIONS, trackingDataset=trackingDataset, batch_size=batch_size, optimizer=optimizer,
+if resume == True:
+    saver.restore(session, tf.train.latest_checkpoint(NEURAL_NETWORK_OUTPUT_DIR))
+    with open(outputName + '.txt') as file:
+        for line in file:
+            lineSplit = line.split()
+            currentIterations = int(lineSplit[0])
+            currentIterations += 1
+# optimizer, cost, accuracy, x, y_true = loadNeuralNetwork(outputName)
+
+train(num_iteration=NUM_OF_ITERATIONS, currentIterations=currentIterations, trackingDataset=trackingDataset, batch_size=batch_size, optimizer=optimizer,
       cost=cost, accuracy=accuracy, x=x, y_true=y_true)
+
+saver.save(session, outputName)
+f = open(outputName + '.txt', "w")
+f.write(str(NUM_OF_ITERATIONS))
+f.close()
 
 
 
