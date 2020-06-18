@@ -15,21 +15,31 @@ trackingDataset = dataset.loadFromDataset('C:\\GitHubCode\\phd\\ImageCytometry\\
 
 file = open("outputRots.txt", "w")
 
-for sampleId in range(rots):
-    for l in range(channels):
-        for i in range(len(trackingDataset.features[sampleId])):
-            for k in range(len(trackingDataset.features[sampleId][i])):
-                file.write(str(trackingDataset.features[sampleId][i][k][l]) + ' ')
-            file.write('\n')
-        file.write('\n')
-    file.write('Feature values:' + str(trackingDataset.features[sampleId][int(size / 2)][int(size / 2)][0]) + ' ' + str(
-        trackingDataset.features[sampleId][int(size / 2)][int(size / 2)][1]) + '\n')
-    file.write('Response value' + str(trackingDataset.response[sampleId][0]) + ' '
-               + str(trackingDataset.response[sampleId][1]))
+# for sampleId in range(rots):
+#     for l in range(channels):
+#         for i in range(len(trackingDataset.features[sampleId])):
+#             for k in range(len(trackingDataset.features[sampleId][i])):
+#                 file.write(str(trackingDataset.features[sampleId][i][k][l]) + ' ')
+#             file.write('\n')
+#         file.write('\n')
+#     file.write('Feature values:' + str(trackingDataset.features[sampleId][int(size / 2)][int(size / 2)][0]) + ' ' + str(
+#         trackingDataset.features[sampleId][int(size / 2)][int(size / 2)][1]) + '\n')
+#     file.write('Response value' + str(trackingDataset.response[sampleId][0]) + ' '
+#                + str(trackingDataset.response[sampleId][1]))
+#
+# file.write('X: ' + str(trackingDataset.x[0]) + ' Y: ' + str(trackingDataset.y[0]) + ' Width: ' +
+#            str(trackingDataset.width[0]) + ' Height: ' + str(trackingDataset.height[0]) + '\n')
+# file.close()
 
-file.write('X: ' + str(trackingDataset.x[0]) + ' Y: ' + str(trackingDataset.y[0]) + ' Width: ' +
-           str(trackingDataset.width[0]) + ' Height: ' + str(trackingDataset.height[0]) + '\n')
-file.close()
+for id in range(len(trackingDataset.features / 4)):
+    copy = trackingDataset.features[id * rots]
+    copy = np.rot90(copy)
+    for rotId in range(1, 3):
+        for i in range(len(trackingDataset.features[0])):
+            for k in range(len(trackingDataset.features[0][0])):
+                for l in range(channels):
+                    if abs(trackingDataset.features[id * rots + rotId][i][k][l]) != abs(copy[i][k][l])
+
 
 # PATH_TO_BACKGROUND = 'D:\\BigData\\cellinfluid\\bunkyObrazkyTiff\\background.png'
 # image = cv2.imread(PATH_TO_BACKGROUND)
