@@ -240,8 +240,8 @@ class Dataset(object):
                 # 3x 90 degree rotation for more data
                 tempFutureVelX = futureVelocityX
                 tempFutureVelY = futureVelocityY
-                for i in range(4):
-                    if i != 0:
+                for rotId in range(4):
+                    if rotId != 0:
                         array = np.rot90(array)
                         array[int(size / 2)][int(size / 2)][0], array[int(size / 2)][int(size / 2)][1] =\
                             -array[int(size / 2)][int(size / 2)][1], array[int(size / 2)][int(size / 2)][0]
@@ -256,10 +256,11 @@ class Dataset(object):
                                 array[i][k][3], array[i][k][4] = -array[i][k][4], array[i][k][3]
                                 if array[i][k][3] == -0.0:
                                     array[i][k][3] = abs(array[i][k][3])
-                    tf_example = self.createTrackingTFRecord(array, size, size, trackedBoundingBox.x,
+                    if rotId == 1:
+                        tf_example = self.createTrackingTFRecord(array, size, size, trackedBoundingBox.x,
                                                              trackedBoundingBox.y, [tempFutureVelX, tempFutureVelY])
-                    writers[0].write(tf_example.SerializeToString())
-                    if rotations == False:
+                        writers[0].write(tf_example.SerializeToString())
+                    if rotations == False or rotId == 1:
                         break
 
                 boundingBoxIndex += 1
@@ -335,12 +336,12 @@ if __name__ == "__main__":
     simulationData = CellDataReader.readCellData(Definitions.DATA_ROOT_DIRECTORY + Definitions.FILE_ID_NAME)
     CellDataReader.readCellPositions(Definitions.DATA_ROOT_DIRECTORY + Definitions.POSITIONS_FOLDER + '\\',
                                      simulationData, Definitions.POSITION_FILE_PROTO)
-    dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
-                                  'Tracking250SimulationMatrix31AnnotatedFixed', flow_matrix, 31, Input.ANNOTATED, False)
+    # dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
+                                  # 'Tracking250SimulationMatrix31AnnotatedFixed', flow_matrix, 31, Input.ANNOTATED, False)
     # dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
     #                               'Tracking250SimulationMatrix30SimulatedFixed', flow_matrix, 30, Input.SIMULATION, False)
 
-    # dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
-    #                               'Tracking250SimulationMatrix31AnnotatedFixedRots', flow_matrix, 31, Input.ANNOTATED, True)
+    dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
+                                  'Tracking250SimulationMatrix31AnnotatedFixedRotsOnlyOne', flow_matrix, 31, Input.ANNOTATED, True)
     # dataset.createTrackingDataset(DATASET_OUTPUT_PATH, annotatedData, simulationData,
     #                               'Tracking250SimulationMatrix30SimulatedFixedRots', flow_matrix, 30, Input.SIMULATION, True)
