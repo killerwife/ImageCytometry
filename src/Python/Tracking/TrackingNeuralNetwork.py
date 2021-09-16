@@ -8,13 +8,13 @@ DATASET_NAME = 'trainTracking250SimulationMatrix31AnnotatedFixedRots.record'
 NEURAL_NETWORK_OUTPUT_DIR = 'trainingOutput\\'
 if not os.path.exists(NEURAL_NETWORK_OUTPUT_DIR):
     os.makedirs(NEURAL_NETWORK_OUTPUT_DIR)
-MODEL_NAME = 'trackingNeuralNetworkAnnotated'
+MODEL_NAME = 'trackingNeuralNetworkAnnotatedNewModel'
 NUM_OF_ITERATIONS = 1000000
 img_size = 31
 num_channels = 5
 outputSize = 2
 batch_size = 32
-resume = True
+resume = False
 
 
 def create_weights(shape):
@@ -41,9 +41,17 @@ def create_convolutional_layer(input, num_input_channels, conv_filter_size, num_
     return layer
 
 
-def create_pooling_layer(input):
+def create_max_pooling_layer(input):
     # We shall be using max-pooling.
     layer = tf.nn.max_pool(value=input, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+    # Output of pooling is fed to Relu which is the activation function for us.
+    layer = tf.nn.relu(layer)
+
+    return layer
+
+def create_global_average_pooling_layer(input):
+    # We shall be using max-pooling.
+    layer = tf.reduce_mean(input_tensor=input, axis=[1, 2])
     # Output of pooling is fed to Relu which is the activation function for us.
     layer = tf.nn.relu(layer)
 
@@ -93,84 +101,75 @@ def designNeuralNetwork(img_size, num_channels, output_size):
 
     y_true = tf.placeholder(tf.float32, shape=[None, output_size], name='y_true')
 
-    filter_size_conv1 = 3
-    num_filters_conv1 = 32
+    filter_size_conv_first = 3
+    num_filters_conv_first = 32
 
-    filter_size_conv2 = 3
-    num_filters_conv2 = 32
+    filter_size_conv_second = 3
+    num_filters_conv_second = 64
 
-    filter_size_conv3 = 3
-    num_filters_conv3 = 32
-
-    filter_size_conv4 = 3
-    num_filters_conv4 = 32
-
-    filter_size_conv5 = 3
-    num_filters_conv5 = 32
-
-    filter_size_conv6 = 3
-    num_filters_conv6 = 32
+    filter_size_conv_third = 3
+    num_filters_conv_third = 128
 
     layer_conv1 = create_convolutional_layer(input=x,
                                              num_input_channels=num_channels,
-                                             conv_filter_size=filter_size_conv1,
-                                             num_filters=num_filters_conv1)
+                                             conv_filter_size=filter_size_conv_first,
+                                             num_filters=num_filters_conv_first)
     layer_conv2 = create_convolutional_layer(input=layer_conv1,
-                                             num_input_channels=num_filters_conv1,
-                                             conv_filter_size=filter_size_conv2,
-                                             num_filters=num_filters_conv2)
+                                             num_input_channels=num_filters_conv_first,
+                                             conv_filter_size=filter_size_conv_first,
+                                             num_filters=num_filters_conv_first)
 
     layer_conv3 = create_convolutional_layer(input=layer_conv2,
-                                             num_input_channels=num_filters_conv2,
-                                             conv_filter_size=filter_size_conv3,
-                                             num_filters=num_filters_conv3)
+                                             num_input_channels=num_filters_conv_first,
+                                             conv_filter_size=filter_size_conv_first,
+                                             num_filters=num_filters_conv_first)
 
     layer_conv4 = create_convolutional_layer(input=layer_conv3,
-                                             num_input_channels=num_filters_conv3,
-                                             conv_filter_size=filter_size_conv4,
-                                             num_filters=num_filters_conv4)
+                                             num_input_channels=num_filters_conv_first,
+                                             conv_filter_size=filter_size_conv_first,
+                                             num_filters=num_filters_conv_first)
 
     layer_conv5 = create_convolutional_layer(input=layer_conv4,
-                                             num_input_channels=num_filters_conv4,
-                                             conv_filter_size=filter_size_conv5,
-                                             num_filters=num_filters_conv5)
+                                             num_input_channels=num_filters_conv_first,
+                                             conv_filter_size=filter_size_conv_first,
+                                             num_filters=num_filters_conv_first)
 
     layer_conv6 = create_convolutional_layer(input=layer_conv5,
-                                             num_input_channels=num_filters_conv5,
-                                             conv_filter_size=filter_size_conv6,
-                                             num_filters=num_filters_conv6)
+                                             num_input_channels=num_filters_conv_first,
+                                             conv_filter_size=filter_size_conv_second,
+                                             num_filters=num_filters_conv_second)
 
     layer_conv7 = create_convolutional_layer(input=layer_conv6,
-                                             num_input_channels=num_filters_conv5,
-                                             conv_filter_size=filter_size_conv6,
-                                             num_filters=num_filters_conv6)
+                                             num_input_channels=num_filters_conv_second,
+                                             conv_filter_size=filter_size_conv_second,
+                                             num_filters=num_filters_conv_second)
 
     layer_conv8 = create_convolutional_layer(input=layer_conv7,
-                                             num_input_channels=num_filters_conv5,
-                                             conv_filter_size=filter_size_conv6,
-                                             num_filters=num_filters_conv6)
+                                             num_input_channels=num_filters_conv_second,
+                                             conv_filter_size=filter_size_conv_second,
+                                             num_filters=num_filters_conv_second)
 
     layer_conv9 = create_convolutional_layer(input=layer_conv8,
-                                             num_input_channels=num_filters_conv5,
-                                             conv_filter_size=filter_size_conv6,
-                                             num_filters=num_filters_conv6)
+                                             num_input_channels=num_filters_conv_second,
+                                             conv_filter_size=filter_size_conv_second,
+                                             num_filters=num_filters_conv_second)
 
     layer_conv10 = create_convolutional_layer(input=layer_conv9,
-                                              num_input_channels=num_filters_conv5,
-                                              conv_filter_size=filter_size_conv6,
-                                              num_filters=num_filters_conv6)
+                                              num_input_channels=num_filters_conv_second,
+                                              conv_filter_size=filter_size_conv_second,
+                                              num_filters=num_filters_conv_second)
 
     layer_conv11 = create_convolutional_layer(input=layer_conv10,
-                                              num_input_channels=num_filters_conv5,
-                                              conv_filter_size=filter_size_conv6,
-                                              num_filters=num_filters_conv6)
+                                              num_input_channels=num_filters_conv_second,
+                                              conv_filter_size=filter_size_conv_third,
+                                              num_filters=num_filters_conv_third)
 
     layer_conv12 = create_convolutional_layer(input=layer_conv11,
-                                              num_input_channels=num_filters_conv5,
-                                              conv_filter_size=filter_size_conv6,
-                                              num_filters=num_filters_conv6)
+                                              num_input_channels=num_filters_conv_third,
+                                              conv_filter_size=filter_size_conv_third,
+                                              num_filters=num_filters_conv_third)
 
-    layer_pool1 = create_pooling_layer(input=layer_conv12)
+    layer_pool1 = create_global_average_pooling_layer(input=layer_conv12)
 
     layer_flat = create_flatten_layer(layer_pool1)
 
